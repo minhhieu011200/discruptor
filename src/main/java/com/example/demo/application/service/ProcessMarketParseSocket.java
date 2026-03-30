@@ -2,7 +2,7 @@ package com.example.demo.application.service;
 
 import org.springframework.stereotype.Service;
 
-import com.example.demo.domain.entity.MarketEntity;
+import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.service.ProcessMarketParseService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +17,7 @@ public class ProcessMarketParseSocket implements ProcessMarketParseService<Strin
     }
 
     @Override
-    public MarketEntity process(String data) {
+    public SymbolEntity process(String data) {
         try {
 
             // 1️⃣ Strip outer a[" ... "] safely
@@ -49,13 +49,10 @@ public class ProcessMarketParseSocket implements ProcessMarketParseService<Strin
             JsonNode msgNode = mapper.readTree(jsonPart);
 
             // 6️⃣ Populate MarketEntity
-            MarketEntity entity = new MarketEntity();
+            SymbolEntity entity = new SymbolEntity();
 
             // pid is string, parse safely
-            entity.setSymbol(Integer.parseInt(msgNode.get("pid").asText()));
-
-            // last_numeric is safe number
-            entity.setLast(Math.round(msgNode.get("last_numeric").asDouble() * 10000));
+            entity.setImtcode(msgNode.get("pid").asText());
 
             // bid/ask may have commas, remove them
             String bidStr = msgNode.get("bid").asText().replace(",", "");

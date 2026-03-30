@@ -6,14 +6,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.stereotype.Service;
 
-import com.example.demo.domain.entity.MarketEntity;
+import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.service.PublishService;
 import com.lmax.disruptor.BusySpinWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
 @Service
-public class MarketDisruptor implements PublishService<Void, MarketEntity> {
+public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
     private final int NUM_WORKERS = 16; // số lane / worker
     private final Disruptor<MarketEvent>[] disruptors = (Disruptor<MarketEvent>[]) new Disruptor[NUM_WORKERS];
     private final AtomicLong[] counters = new AtomicLong[NUM_WORKERS];
@@ -25,7 +25,7 @@ public class MarketDisruptor implements PublishService<Void, MarketEntity> {
             disruptors[i] = new Disruptor<>(
                     new MarketEvent.Factory(),
                     1024,
-                    Thread.ofPlatform().factory(),
+                    Thread.ofPlatform().name("lane-" + lane + "-").factory(),
                     ProducerType.SINGLE,
                     new BusySpinWaitStrategy());
 
@@ -70,8 +70,8 @@ public class MarketDisruptor implements PublishService<Void, MarketEntity> {
     }
 
     // Publisher gọi: hash symbolId → lane
-    public Void publish(MarketEntity e) {
-        int lane = (int) (e.getSymbol() % NUM_WORKERS);
+    public Void publish(String channel, SymbolEntity e) {
+        int lane = (int) (channel.hashCode() % NUM_WORKERS);
         long seq = disruptors[lane].getRingBuffer().next();
         try {
             MarketEvent ev = disruptors[lane].getRingBuffer().get(seq);

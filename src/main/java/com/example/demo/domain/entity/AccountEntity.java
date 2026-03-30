@@ -1,6 +1,7 @@
 package com.example.demo.domain.entity;
 
 import lombok.Data;
+import lombok.experimental.SuperBuilder;
 
 @Data
 public class AccountEntity extends BaseEntity {

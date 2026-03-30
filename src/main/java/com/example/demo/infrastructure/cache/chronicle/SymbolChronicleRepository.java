@@ -1,11 +1,14 @@
 package com.example.demo.infrastructure.cache.chronicle;
 
+import org.springframework.stereotype.Repository;
+
 import com.example.demo.domain.entity.SymbolEntity;
-import com.example.demo.domain.repository.BaseRepository;
+import com.example.demo.domain.repository.SymbolRepository;
 
 import net.openhft.chronicle.map.ChronicleMap;
 
-public class SymbolChronicleRepository implements BaseRepository<SymbolEntity, String> {
+@Repository
+public class SymbolChronicleRepository implements SymbolRepository {
     private ChronicleMap<String, SymbolEntity> symbolChronicleMap = ChronicleMap
             .of(String.class, SymbolEntity.class)
             .name("symbol-price-map")

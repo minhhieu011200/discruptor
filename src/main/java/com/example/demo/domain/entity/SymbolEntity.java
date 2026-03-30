@@ -1,6 +1,8 @@
 package com.example.demo.domain.entity;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
 public class SymbolEntity extends BaseEntity {
@@ -8,8 +10,8 @@ public class SymbolEntity extends BaseEntity {
     private String buyCurrency;
     private String sellCurrency;
     private String imtcode;
-    private long bid;
-    private long ask;
+    private double bid;
+    private double ask;
     private String tenor;
     private double spread;
     private String rateQuoteID;

@@ -1,9 +1,10 @@
 package com.example.demo.domain.entity;
 
 import lombok.Data;
+import lombok.experimental.SuperBuilder;
 
 @Data
 public class BaseEntity {
-    private int createdTime;
-    private int updatedTime;
+    private long createdTime;
+    private long updatedTime;
 }

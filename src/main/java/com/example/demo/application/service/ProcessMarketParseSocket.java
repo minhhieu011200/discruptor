@@ -49,18 +49,11 @@ public class ProcessMarketParseSocket implements ProcessMarketParseService<Strin
             JsonNode msgNode = mapper.readTree(jsonPart);
 
             // 6️⃣ Populate MarketEntity
-            SymbolEntity entity = new SymbolEntity();
-
-            // pid is string, parse safely
-            entity.setImtcode(msgNode.get("pid").asText());
-
-            // bid/ask may have commas, remove them
-            String bidStr = msgNode.get("bid").asText().replace(",", "");
-            String askStr = msgNode.get("ask").asText().replace(",", "");
-
-            entity.setBid(Math.round(Double.parseDouble(bidStr) * 10000));
-            entity.setAsk(Math.round(Double.parseDouble(askStr) * 10000));
-
+            SymbolEntity entity = SymbolEntity.builder()
+                    .imtcode(msgNode.get("pid").asText())
+                    .bid(Math.round(Double.parseDouble(msgNode.get("bid").asText().replace(",", "")) * 10000))
+                    .ask(Math.round(Double.parseDouble(msgNode.get("ask").asText().replace(",", "")) * 10000))
+                    .build();
             return entity;
 
         } catch (Exception e) {

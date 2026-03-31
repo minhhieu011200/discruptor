@@ -4,16 +4,13 @@ import com.example.demo.domain.entity.TranslogEntity;
 import com.example.demo.infrastructure.mybatis.TranslogMapper;
 
 import io.netty.util.internal.shaded.org.jctools.queues.MpmcArrayQueue;
-import io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueue;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-@Component
 public class TransLogWorker implements Runnable {
     private final MpmcArrayQueue<TranslogEntity> queue;
     private final TranslogMapper mapper;
@@ -28,16 +25,20 @@ public class TransLogWorker implements Runnable {
     @Override
     public void run() {
         List<TranslogEntity> batch = new ArrayList<>(batchSize);
+
         while (true) {
             TranslogEntity entity = queue.poll();
+
             if (entity != null) {
                 batch.add(entity);
+
                 if (batch.size() >= batchSize) {
                     insertBatch(batch);
                     batch.clear();
                 }
             } else {
                 if (!batch.isEmpty()) {
+
                     insertBatch(batch);
                     batch.clear();
                 }
@@ -46,7 +47,7 @@ public class TransLogWorker implements Runnable {
         }
     }
 
-    @Transactional
+    // @Transactional
     public void insertBatch(List<TranslogEntity> batch) {
         if (!batch.isEmpty()) {
             mapper.insertBatch(batch);

@@ -12,9 +12,9 @@ import com.example.demo.domain.entity.TranslogEntity;
 public interface TranslogMapper {
     @Insert({
             "<script>",
-            "INSERT INTO translog (symbol, price, volume, timestamp) VALUES ",
+            "INSERT INTO translog (imtcode,bid,ask,price_tesury,created_time,updated_time) VALUES ",
             "<foreach collection='list' item='item' separator=','>",
-            "(#{item.symbol}, #{item.price}, #{item.volume}, #{item.timestamp})",
+            "(#{item.imtcode}, #{item.bid}, #{item.ask}, #{item.priceTesury}, #{item.createdTime}, #{item.updatedTime})",
             "</foreach>",
             "</script>"
     })

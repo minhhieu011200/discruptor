@@ -11,7 +11,7 @@ import com.lmax.disruptor.BusySpinWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
-@Service
+@Service("MarketDisruptor")
 public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
     private final int NUM_WORKERS = 16; // số lane / worker
     private final Disruptor<MarketEvent>[] disruptors = (Disruptor<MarketEvent>[]) new Disruptor[NUM_WORKERS];
@@ -36,8 +36,10 @@ public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
     }
 
     // Publisher gọi: hash symbolId → lane
+    @Override
     public Void publish(String channel, SymbolEntity e) {
         int lane = (int) (channel.hashCode() % NUM_WORKERS);
+        System.out.println("Publishing to lane " + lane + " for symbol " + channel);
         long seq = disruptors[lane].getRingBuffer().next();
         try {
             MarketEvent ev = disruptors[lane].getRingBuffer().get(seq);

@@ -1,10 +1,12 @@
 package com.example.demo.domain.entity;
 
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
+import lombok.With;
 
 @Data
+@Builder
+@With
 public class SymbolEntity extends BaseEntity {
     private String exchangeid;
     private String buyCurrency;

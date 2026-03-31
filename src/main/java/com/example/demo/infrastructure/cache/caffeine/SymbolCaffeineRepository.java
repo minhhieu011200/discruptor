@@ -1,38 +1,42 @@
-package com.example.demo.infrastructure.cache.chronicle;
+package com.example.demo.infrastructure.cache.caffeine;
+
+import org.springframework.stereotype.Repository;
 
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.repository.SymbolRepository;
 
-import net.openhft.chronicle.map.ChronicleMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
-// @Repository
-public class SymbolChronicleRepository implements SymbolRepository {
-    ChronicleMap<String, SymbolEntity> symbolChronicleMap = ChronicleMap
-            .of(String.class, SymbolEntity.class)
-            .name("symbol-price-map")
-            .entries(10_000000)
-            .averageKeySize(64) // khoảng 20 ký tự trung bình cho key
-            .averageValueSize(200)
-            .create();
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@Repository
+public class SymbolCaffeineRepository implements SymbolRepository {
+
+    private final Cache<String, SymbolEntity> symbolCache = Caffeine.newBuilder()
+            .maximumSize(10_000_000) // max 10 triệu entries
+            .expireAfterAccess(24, TimeUnit.HOURS) // optional, tránh full heap
+            .build();
 
     @Override
     public SymbolEntity get(String id) {
-        return symbolChronicleMap.get(id);
+        return symbolCache.getIfPresent(id);
     }
 
     @Override
     public void set(String id, SymbolEntity entity) {
-        symbolChronicleMap.put(id, entity);
+        symbolCache.put(id, entity);
     }
 
     @Override
     public void delete(String id) {
-        symbolChronicleMap.remove(id);
+        symbolCache.invalidate(id);
     }
 
     @Override
     public void update(String id, SymbolEntity entity) {
-        symbolChronicleMap.compute(id, (key, oldValue) -> {
+        symbolCache.asMap().compute(id, (key, oldValue) -> {
             if (oldValue == null) {
                 return entity;
             }
@@ -71,7 +75,7 @@ public class SymbolChronicleRepository implements SymbolRepository {
     }
 
     @Override
-    public ChronicleMap<String, SymbolEntity> getAll() {
-        return symbolChronicleMap;
+    public Map<String, SymbolEntity> getAll() {
+        return symbolCache.asMap();
     }
 }

@@ -1,7 +1,6 @@
 package com.example.demo.application.service;
 
-import java.util.concurrent.ThreadLocalRandom;
-
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.domain.entity.SymbolEntity;
@@ -15,7 +14,7 @@ public class ProcessMarketReceiveSocket implements ProcessMarketReceiveService<S
     private PublishService<Void, SymbolEntity> publishService;
 
     public ProcessMarketReceiveSocket(ProcessMarketParseService processMarketParseSocket,
-            PublishService<Void, SymbolEntity> publishService) {
+            @Qualifier("MarketDisruptor") PublishService<Void, SymbolEntity> publishService) {
         this.processMarketParseSocket = processMarketParseSocket;
         this.publishService = publishService;
     }

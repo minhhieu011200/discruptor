@@ -5,52 +5,96 @@ import com.example.demo.infrastructure.mybatis.TranslogMapper;
 
 import io.netty.util.internal.shaded.org.jctools.queues.MpmcArrayQueue;
 
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class TransLogWorker implements Runnable {
+
     private final MpmcArrayQueue<TranslogEntity> queue;
     private final TranslogMapper mapper;
     private final int batchSize;
+    private final long maxWaitMillis;
 
-    public TransLogWorker(MpmcArrayQueue<TranslogEntity> queue, TranslogMapper mapper, int batchSize) {
+    private volatile boolean running = true;
+
+    public TransLogWorker(MpmcArrayQueue<TranslogEntity> queue,
+            TranslogMapper mapper,
+            int batchSize,
+            long maxWaitMillis) {
         this.queue = queue;
         this.mapper = mapper;
         this.batchSize = batchSize;
+        this.maxWaitMillis = maxWaitMillis;
+    }
+
+    public void shutdown() {
+        running = false;
     }
 
     @Override
     public void run() {
+
         List<TranslogEntity> batch = new ArrayList<>(batchSize);
+        long firstAddTime = 0;
 
-        while (true) {
-            TranslogEntity entity = queue.poll();
+        int emptyPollCount = 0;
 
-            if (entity != null) {
-                batch.add(entity);
+        while (running || !queue.isEmpty() || !batch.isEmpty()) {
+
+            TranslogEntity item = queue.poll();
+            long now = System.currentTimeMillis();
+
+            if (item != null) {
+                emptyPollCount = 0;
+
+                if (batch.isEmpty()) {
+                    firstAddTime = now;
+                }
+
+                batch.add(item);
 
                 if (batch.size() >= batchSize) {
-                    insertBatch(batch);
+                    flushBatch(batch);
                     batch.clear();
+                    firstAddTime = 0;
                 }
-            } else {
-                if (!batch.isEmpty()) {
 
-                    insertBatch(batch);
-                    batch.clear();
-                }
-                Thread.yield(); // không có dữ liệu → yield CPU
+                continue;
             }
+
+            // Queue rỗng → kiểm tra timeout batch
+            if (!batch.isEmpty() &&
+                    maxWaitMillis > 0 &&
+                    now - firstAddTime >= maxWaitMillis) {
+
+                flushBatch(batch);
+                batch.clear();
+                firstAddTime = 0;
+                continue;
+            }
+
+            // Avoid busy spin
+            emptyPollCount++;
+            if (emptyPollCount > 50) {
+                emptyPollCount = 0;
+                Thread.yield();
+            }
+        }
+
+        // Before exit → flush hết
+        if (!batch.isEmpty()) {
+            flushBatch(batch);
         }
     }
 
-    // @Transactional
-    public void insertBatch(List<TranslogEntity> batch) {
+    private void flushBatch(List<TranslogEntity> batch) {
         if (!batch.isEmpty()) {
-            mapper.insertBatch(batch);
+            try {
+                mapper.insertBatch(batch);
+            } catch (Exception e) {
+                // TODO: retry hoặc đưa vào DLQ
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.domain.service.ProcessMarketReceiveService;
 import com.example.demo.domain.service.PublishService;
+import com.example.demo.infrastructure.metrics.MessageThroughputMetrics;
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -16,9 +17,12 @@ public class DecodeDisruptor implements PublishService<Void, byte[]> {
 
     private static final int RING_BUFFER_SIZE = 1024; // power
     private final ProcessMarketReceiveService<byte[]> service;
+    private final MessageThroughputMetrics metrics;
 
-    public DecodeDisruptor(ProcessMarketReceiveService<byte[]> processMarketReceiveService) throws Exception {
+    public DecodeDisruptor(ProcessMarketReceiveService<byte[]> processMarketReceiveService,
+            MessageThroughputMetrics metrics) throws Exception {
         this.service = processMarketReceiveService;
+        this.metrics = metrics;
 
         disruptorDecode = new Disruptor<>(
                 new DecodeEvent.Factory(),
@@ -27,7 +31,7 @@ public class DecodeDisruptor implements PublishService<Void, byte[]> {
                 ProducerType.SINGLE,
                 new BlockingWaitStrategy());
 
-        disruptorDecode.handleEventsWith(new DecodeEventHandler(service));
+        disruptorDecode.handleEventsWith(new DecodeEventHandler(service, metrics));
         disruptorDecode.start();
         // Lấy ringBuffer sau khi start
         ringBufferDecode = disruptorDecode.getRingBuffer();

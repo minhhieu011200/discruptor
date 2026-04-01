@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import com.etrade.gateway.sbe.BooleanType;
 import com.etrade.gateway.sbe.MessageHeaderDecoder;
-import com.etrade.gateway.sbe.MessageHeaderEncoder;
 import com.etrade.gateway.sbe.QuoteDecoder;
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.service.ProcessMarketParseService;

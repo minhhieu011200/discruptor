@@ -41,7 +41,6 @@ public class TranslogShardedQueue implements TranslogShardedQueueRepository {
             for (int i = 0; i < WORKERS_PER_SHARD; i++) {
                 executor.submit(new TransLogWorker(queue, mapper, BATCH_SIZE));
             }
-            System.out.println("Started workers for symbol: " + symbol);
             return true;
         });
     }

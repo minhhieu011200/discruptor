@@ -16,6 +16,7 @@ public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
     private final int NUM_WORKERS = 16; // số lane / worker
     private final Disruptor<MarketEvent>[] disruptors = (Disruptor<MarketEvent>[]) new Disruptor[NUM_WORKERS];
     private final ProcessMarketEventService service;
+    private static final int RING_BUFFER_SIZE = 1024; // power of 2
 
     public MarketDisruptor(ProcessMarketEventService processMarketEvent) throws Exception {
         this.service = processMarketEvent;
@@ -23,7 +24,7 @@ public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
             final int lane = i;
             disruptors[i] = new Disruptor<>(
                     new MarketEvent.Factory(),
-                    1024,
+                    RING_BUFFER_SIZE,
                     Thread.ofPlatform().name("lane-" + lane + "-").factory(),
                     ProducerType.SINGLE,
                     new BusySpinWaitStrategy());

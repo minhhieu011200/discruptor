@@ -28,7 +28,6 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
 
     @Override
     public void process(SymbolEntity data) {
-        System.out.println("Processing market event for symbol: " + data.toString());
         String imt = data.getImtcode();
 
         if ("USDVND".equals(imt)) {

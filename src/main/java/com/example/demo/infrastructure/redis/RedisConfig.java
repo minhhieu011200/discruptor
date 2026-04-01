@@ -6,8 +6,6 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
-import com.example.demo.domain.service.PublishService;
-
 @Configuration
 public class RedisConfig {
 

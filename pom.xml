@@ -27,6 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
+		<sbe-tool-artifactId>sbe-tool</sbe-tool-artifactId>
 		<java.version>21</java.version>
 	</properties>
 	<dependencies>
@@ -104,12 +105,33 @@
 			<scope>compile</scope>
 		</dependency>
 
+		<!-- Source: https://mvnrepository.com/artifact/org.springframework.kafka/spring-kafka -->
 		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>42.7.10</version>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+			<version>4.0.4</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-kafka</artifactId>
+			<version>4.1.0-M4</version>
+			<scope>compile</scope>
+		</dependency>
+		
+		<dependency>
+            <groupId>uk.co.real-logic</groupId>
+		    <artifactId>sbe-tool</artifactId>
+            <version>1.37.1</version>
+        </dependency>
+
+		<dependency>
+			<groupId>org.agrona</groupId>
+			<artifactId>agrona</artifactId>
+			<version>2.4.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -136,6 +158,65 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<executions>
+					<execution>
+						<id>generate-sbe</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<mainClass>uk.co.real_logic.sbe.SbeTool</mainClass>
+							<classpathScope>compile</classpathScope>
+							<systemProperties>
+								<systemProperty>
+									<key>sbe.output.dir</key>
+									<value>${project.build.directory}/generated-sources/sbe</value>
+								</systemProperty>
+								<systemProperty>
+									<key>sbe.target.language</key>
+									<value>Java</value>
+								</systemProperty>
+							</systemProperties>
+							<arguments>
+								<argument>${project.basedir}/src/main/resources/sbe/quote-schema.xml</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.6.0</version>
+				<executions>
+					<execution>
+						<id>add-sbe-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/sbe</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<jvmArguments>--add-exports java.base/jdk.internal.misc=ALL-UNNAMED</jvmArguments>
 				</configuration>
 			</plugin>
 		</plugins>

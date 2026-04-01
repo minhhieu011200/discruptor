@@ -9,23 +9,19 @@ import com.example.demo.domain.service.ProcessMarketReceiveService;
 import com.example.demo.domain.service.PublishService;
 
 @Service
-public class ProcessMarketReceiveSocket implements ProcessMarketReceiveService<String> {
+public class ProcessMarketReceiveKafka implements ProcessMarketReceiveService<byte[]> {
     private ProcessMarketParseService processMarketParseSocket;
     private PublishService<Void, SymbolEntity> publishService;
 
-    public ProcessMarketReceiveSocket(ProcessMarketParseService processMarketParseSocket,
+    public ProcessMarketReceiveKafka(ProcessMarketParseService processMarketParseSocket,
             @Qualifier("MarketDisruptor") PublishService<Void, SymbolEntity> publishService) {
         this.processMarketParseSocket = processMarketParseSocket;
         this.publishService = publishService;
     }
 
     @Override
-    public void process(String data) {
+    public void process(byte[] data) {
         SymbolEntity me = processMarketParseSocket.process(data);
-        if (me == null) {
-            System.err.println("Failed to parse data: " + data);
-            return;
-        }
         publishService.publish(me.getImtcode(), me);
     }
 

@@ -20,7 +20,6 @@ public class TranslogService {
     public void insertBatch(List<TranslogEntity> batch) {
         if (!batch.isEmpty()) {
             mapper.insertBatch(batch);
-            System.out.println("Inserted batch size: " + batch.size());
         }
     }
 }

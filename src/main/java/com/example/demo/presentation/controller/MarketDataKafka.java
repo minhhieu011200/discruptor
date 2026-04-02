@@ -30,7 +30,6 @@ public class MarketDataKafka {
     @KafkaListener(id = "${market.kafka.listener.id}", topics = "${market.kafka.listener.topics}", containerFactory = "batchFactory")
     public void listen(List<byte[]> batch, Acknowledgment ack) {
         batch.forEach(data -> this.service.publish("", data));
-        // record batch size into metrics (will update msgs/s), tag as kafka_listener
         try {
             this.metrics.recordMessages(batch.size(), "kafka_listener");
         } catch (Exception e) {

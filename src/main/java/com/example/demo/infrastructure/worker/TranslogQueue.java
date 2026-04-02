@@ -14,8 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class TranslogQueue implements TranslogShardedQueueRepository {
     private static final int BATCH_SIZE = 5000;
-    private static final int WORKER_COUNT = 16; // số thread tiêu thụ chung
-    private static final int QUEUE_CAPACITY = 10_000;
+    private static final int WORKER_COUNT = 4; // số thread tiêu thụ chung
+    private static final int QUEUE_CAPACITY = 1000000;
     private static final long FLUSH_MILLIS = 500; // flush nếu item tồn > 500
 
     private final MpmcArrayQueue<TranslogEntity> sharedQueue = new MpmcArrayQueue<>(QUEUE_CAPACITY);

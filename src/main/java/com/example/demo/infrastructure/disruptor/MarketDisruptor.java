@@ -1,10 +1,8 @@
 package com.example.demo.infrastructure.disruptor;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.springframework.stereotype.Service;
 
-import com.example.demo.domain.entity.SymbolEntity;
+import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.service.ProcessMarketEventService;
 import com.example.demo.domain.service.PublishService;
 import com.example.demo.infrastructure.metrics.MessageThroughputMetrics;
@@ -13,8 +11,8 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
 @Service("MarketDisruptor")
-public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
-    private final int NUM_WORKERS = 16; // số lane / worker
+public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
+    private final int NUM_WORKERS = 4; // số lane / worker
     private final Disruptor<MarketEvent>[] disruptors = (Disruptor<MarketEvent>[]) new Disruptor[NUM_WORKERS];
     private final ProcessMarketEventService service;
     private final MessageThroughputMetrics metrics;
@@ -42,8 +40,8 @@ public class MarketDisruptor implements PublishService<Void, SymbolEntity> {
 
     // Publisher gọi: hash symbolId → lane
     @Override
-    public Void publish(String channel, SymbolEntity e) {
-        int lane = (int) (channel.hashCode() % NUM_WORKERS);
+    public Void publish(String channel, SymbolRequestDTO e) {
+        int lane = (channel.hashCode() & 0x7fffffff) % NUM_WORKERS;
         long seq = disruptors[lane].getRingBuffer().next();
         try {
             MarketEvent ev = disruptors[lane].getRingBuffer().get(seq);

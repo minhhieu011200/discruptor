@@ -36,9 +36,6 @@ public class SymbolChronicleRepository implements SymbolRepository {
             if (oldValue == null) {
                 return entity;
             }
-            if (entity.getExchangeid() != null) {
-                oldValue.setExchangeid(entity.getExchangeid());
-            }
             if (entity.getBuyCurrency() != null) {
                 oldValue.setBuyCurrency(entity.getBuyCurrency());
             }
@@ -59,9 +56,6 @@ public class SymbolChronicleRepository implements SymbolRepository {
             }
             if (entity.getSpread() != 0) {
                 oldValue.setSpread(entity.getSpread());
-            }
-            if (entity.getRateQuoteID() != null) {
-                oldValue.setRateQuoteID(entity.getRateQuoteID());
             }
             if (entity.getStatus() != null) {
                 oldValue.setStatus(entity.getStatus());

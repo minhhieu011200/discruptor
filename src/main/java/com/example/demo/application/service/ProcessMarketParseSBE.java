@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.etrade.gateway.sbe.BooleanType;
 import com.etrade.gateway.sbe.MessageHeaderDecoder;
 import com.etrade.gateway.sbe.QuoteDecoder;
+import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.service.ProcessMarketParseService;
 
@@ -15,7 +16,7 @@ import com.example.demo.domain.service.ProcessMarketParseService;
 public class ProcessMarketParseSBE implements ProcessMarketParseService<byte[]> {
 
     @Override
-    public SymbolEntity process(byte[] data) {
+    public SymbolRequestDTO process(byte[] data) {
         UnsafeBuffer buffer = new UnsafeBuffer(ByteBuffer.wrap(data));
         // 1. Decode header
         MessageHeaderDecoder header = new MessageHeaderDecoder();
@@ -41,13 +42,28 @@ public class ProcessMarketParseSBE implements ProcessMarketParseService<byte[]> 
             String quoteCurrency = quoteDecoder.quoteCurrency();
             String tenor = quoteDecoder.tenor();
             String status = quoteDecoder.status();
-            SymbolEntity symbolEntity = SymbolEntity.builder()
-                    .imtcode(baseCurrency)
-                    .bid(bid)
-                    .ask(ask)
-                    .spread(ask - bid)
-                    .build();
-            return symbolEntity;
+
+            // System.out.println("Decoded Quote: bid=" + bid + ", ask=" + ask + ", valid="
+            // + validEnum + ", base="
+            // + baseCurrency + ", quote=" + quoteCurrency + ", tenor=" + tenor + ",
+            // status=" + status);
+            SymbolRequestDTO symbolRequestDTO = new SymbolRequestDTO();
+
+            symbolRequestDTO.hydrate(
+                    bid,
+                    ask,
+                    validEnum == BooleanType.TRUE,
+                    validFrom,
+                    validTill,
+                    rateType,
+                    rateQuoteID,
+                    rateCategoryID,
+                    baseCurrency,
+                    quoteCurrency,
+                    tenor,
+                    status);
+            // System.out.println("Decoded Quote: bid=" + symbolRequestDTO.toString());
+            return symbolRequestDTO;
         } catch (IndexOutOfBoundsException ex) {
             System.err.println("Failed to decode message, length=" + data.length);
             // System.out.println("FAIL at price, offset=" + quoteDecoder.limit());

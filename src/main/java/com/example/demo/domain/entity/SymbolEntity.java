@@ -1,21 +1,29 @@
 package com.example.demo.domain.entity;
 
-import lombok.Builder;
 import lombok.Data;
-import lombok.With;
 
 @Data
-@Builder
-@With
 public class SymbolEntity extends BaseEntity {
-    private String exchangeid;
-    private String buyCurrency;
-    private String sellCurrency;
-    private String imtcode;
     private double bid;
     private double ask;
+    private String buyCurrency;
+    private String sellCurrency;
     private String tenor;
-    private double spread;
-    private String rateQuoteID;
     private String status;
+    private String imtcode;
+    private double spread;
+    private double buyPriceTesury;
+    private double sellPriceTesury;
+
+    public void setImtCode() {
+        this.imtcode = buyCurrency + sellCurrency;
+    }
+
+    public void setBuyPriceTesury() {
+        this.buyPriceTesury = this.ask + 1;
+    }
+
+    public void setSellPriceTesury() {
+        this.sellPriceTesury = this.bid - 1;
+    }
 }

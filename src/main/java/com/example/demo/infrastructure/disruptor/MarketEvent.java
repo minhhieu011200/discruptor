@@ -1,5 +1,6 @@
 package com.example.demo.infrastructure.disruptor;
 
+import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.entity.SymbolEntity;
 import com.lmax.disruptor.EventFactory;
 
@@ -9,13 +10,13 @@ import lombok.ToString;
 @Data
 @ToString
 public class MarketEvent {
-    private SymbolEntity entity;
+    private SymbolRequestDTO entity;
 
-    public SymbolEntity getEntity() {
+    public SymbolRequestDTO getEntity() {
         return entity;
     }
 
-    public void setEntity(SymbolEntity entity) {
+    public void setEntity(SymbolRequestDTO entity) {
         this.entity = entity;
     }
 

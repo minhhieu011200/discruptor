@@ -1,8 +1,8 @@
 package com.example.demo.domain.service;
 
-import com.example.demo.domain.entity.SymbolEntity;
+import com.example.demo.application.dto.SymbolRequestDTO;
 
 @FunctionalInterface
 public interface ProcessMarketParseService<T> {
-    SymbolEntity process(T data);
+    SymbolRequestDTO process(T data);
 }

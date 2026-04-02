@@ -8,6 +8,8 @@ import com.example.demo.domain.repository.SymbolRepository;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import jakarta.annotation.PostConstruct;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -16,8 +18,18 @@ public class SymbolCaffeineRepository implements SymbolRepository {
 
     private final Cache<String, SymbolEntity> symbolCache = Caffeine.newBuilder()
             .maximumSize(10_000_000) // max 10 triệu entries
-            .expireAfterAccess(24, TimeUnit.HOURS) // optional, tránh full heap
             .build();
+
+    @PostConstruct
+    public void init() {
+        SymbolEntity usdVnd = new SymbolEntity();
+        usdVnd.setBuyCurrency("USD");
+        usdVnd.setSellCurrency("VND");
+        usdVnd.setImtcode("USDVND");
+        usdVnd.setBid(23450);
+        usdVnd.setAsk(23470);
+        this.symbolCache.put("USDVND", usdVnd);
+    }
 
     @Override
     public SymbolEntity get(String id) {
@@ -40,9 +52,6 @@ public class SymbolCaffeineRepository implements SymbolRepository {
             if (oldValue == null) {
                 return entity;
             }
-            if (entity.getExchangeid() != null) {
-                oldValue.setExchangeid(entity.getExchangeid());
-            }
             if (entity.getBuyCurrency() != null) {
                 oldValue.setBuyCurrency(entity.getBuyCurrency());
             }
@@ -63,9 +72,6 @@ public class SymbolCaffeineRepository implements SymbolRepository {
             }
             if (entity.getSpread() != 0) {
                 oldValue.setSpread(entity.getSpread());
-            }
-            if (entity.getRateQuoteID() != null) {
-                oldValue.setRateQuoteID(entity.getRateQuoteID());
             }
             if (entity.getStatus() != null) {
                 oldValue.setStatus(entity.getStatus());

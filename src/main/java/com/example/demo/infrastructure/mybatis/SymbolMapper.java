@@ -8,10 +8,7 @@ import com.example.demo.domain.entity.SymbolEntity;
 
 @Mapper
 public interface SymbolMapper {
-
-    SymbolEntity getAllSymbol();
-
     int batchUpsert(@Param("symbols") List<SymbolEntity> symbols);
 
-    List<SymbolEntity> selectAll();
+    List<SymbolEntity> getAllSymbols();
 }

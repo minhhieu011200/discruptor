@@ -15,9 +15,9 @@
       updated_time = VALUES(updatedTime)
   </insert>
 
-  <select id="selectAll" resultType="com.example.demo.domain.entity.SymbolEntity">
-    SELECT symbol, name, price, updated_time, imtcode, buy_currency, sell_currency, bid, ask, tenor, spread, status
-    FROM symbol
+  <select id="getAllSymbols" resultType="com.example.demo.domain.entity.SymbolEntity">
+    select e.imtcode imtcode, e.buyrate bid, e.sellrate ask, f.firstccy buyCurrency, f.secondccy sellCurrency, f.spread spread from exchangerate e 
+    left join fximt f on e.imtcode= f.fximtcode where e.realtime ='Y' or imtcode='USDVND'
   </select>
 
 </mapper>

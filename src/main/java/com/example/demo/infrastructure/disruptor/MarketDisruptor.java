@@ -10,6 +10,8 @@ import com.lmax.disruptor.BusySpinWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
+import jakarta.annotation.PreDestroy;
+
 @Service("MarketDisruptor")
 public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
     private final int NUM_WORKERS = 4; // số lane / worker
@@ -50,6 +52,14 @@ public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
             disruptors[lane].getRingBuffer().publish(seq);
         }
         return null;
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        for (Disruptor<MarketEvent> d : disruptors) {
+            System.out.println("[MarketDisruptor] Shutting down lane...");
+            d.shutdown(); // đợi event đang xử lý xong
+        }
     }
 
 }

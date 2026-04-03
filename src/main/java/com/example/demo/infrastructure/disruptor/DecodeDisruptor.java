@@ -10,6 +10,8 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
+import jakarta.annotation.PreDestroy;
+
 @Service("DecodeDisruptor")
 public class DecodeDisruptor implements PublishService<Void, byte[]> {
     private final Disruptor<DecodeEvent> disruptorDecode;
@@ -47,5 +49,11 @@ public class DecodeDisruptor implements PublishService<Void, byte[]> {
             ringBufferDecode.publish(sequence);
         }
         return null;
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        System.out.println("[DecodeDisruptor] Shutting down...");
+        disruptorDecode.shutdown();
     }
 }

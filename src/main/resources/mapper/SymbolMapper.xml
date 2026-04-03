@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.infrastructure.mybatis.SymbolMapper">
+
+  <insert id="batchUpsert" parameterType="java.util.List">
+    INSERT INTO symbol (symbol, name, price, updated_time) VALUES
+    <foreach collection="symbols" item="s" separator=",">
+      (#{s.symbol}, #{s.name}, #{s.price}, #{s.updatedTime})
+    </foreach>
+    ON DUPLICATE KEY UPDATE
+      name = VALUES(name),
+      price = VALUES(price),
+      updated_time = VALUES(updatedTime)
+  </insert>
+
+  <select id="selectAll" resultType="com.example.demo.domain.entity.SymbolEntity">
+    SELECT symbol, name, price, updated_time, imtcode, buy_currency, sell_currency, bid, ask, tenor, spread, status
+    FROM symbol
+  </select>
+
+</mapper>

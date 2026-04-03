@@ -14,6 +14,7 @@ import com.example.demo.domain.repository.SymbolRepository;
 import com.example.demo.infrastructure.mybatis.SymbolMapper;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 public class SymbolWorker {
     private static final int BATCH_SIZE = 5000;
@@ -23,52 +24,70 @@ public class SymbolWorker {
     private final SymbolMapper mapper;
     private final SymbolRepository symbolRepository;
 
+    private volatile boolean running = true;
+    private Thread flushThread;
+
     // WorkerPool có bounded queue → tránh OOM
     private final ExecutorService workerPool = new ThreadPoolExecutor(
-            WORKER_COUNT, WORKER_COUNT,
-            0L, TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(WORKER_COUNT * 2), // bounded
-            new ThreadPoolExecutor.DiscardPolicy() // nếu quá tải → bỏ batch
-    );
+            WORKER_COUNT,
+            WORKER_COUNT,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(WORKER_COUNT * 2),
+            new ThreadPoolExecutor.DiscardPolicy());
 
     public SymbolWorker(SymbolMapper mapper, SymbolRepository symbolRepository) {
         this.mapper = mapper;
         this.symbolRepository = symbolRepository;
     }
 
+    // -------------------------------
+    // STARTUP
+    // -------------------------------
     @PostConstruct
     public void init() {
-        Thread flushThread = new Thread(this::flushLoop);
+        flushThread = new Thread(this::flushLoop, "symbol-flush-thread");
         flushThread.setDaemon(true);
         flushThread.start();
+        System.out.println("[SymbolWorker] Started");
     }
 
+    // -------------------------------
+    // MAIN FLUSH LOOP
+    // -------------------------------
     private void flushLoop() {
-        while (true) {
+        while (running) {
             try {
                 flushDirtySymbols();
                 Thread.sleep(FLUSH_INTERVAL_MS);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+                // nếu running = false → break
+                if (!running)
+                    break;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
+        System.out.println("[SymbolWorker] flushLoop stopped");
     }
 
+    // -------------------------------
+    // FLUSHING LOGIC
+    // -------------------------------
     private void flushDirtySymbols() {
-        // Lấy map từ ChronicleMap
+
         Map<String, SymbolEntity> map = symbolRepository.getAll();
 
         List<SymbolEntity> buffer = new ArrayList<>(BATCH_SIZE);
 
         for (SymbolEntity s : map.values()) {
-            if (!s.isDirty())
-                continue; // chỉ flush phần thay đổi (tối ưu quan trọng)
 
-            buffer.add((SymbolEntity) s.clone()); // clone → tránh mutation khi worker xử lý
-            s.markClean(); // reset dirty
+            if (!s.isDirty())
+                continue;
+
+            buffer.add((SymbolEntity) s.clone());
+            s.markClean();
 
             if (buffer.size() >= BATCH_SIZE) {
                 submitBatch(new ArrayList<>(buffer));
@@ -76,9 +95,8 @@ public class SymbolWorker {
             }
         }
 
-        if (!buffer.isEmpty()) {
+        if (!buffer.isEmpty())
             submitBatch(buffer);
-        }
     }
 
     private void submitBatch(List<SymbolEntity> batch) {
@@ -91,7 +109,37 @@ public class SymbolWorker {
                 }
             });
         } catch (RejectedExecutionException ignored) {
-            // Queue full → bỏ batch, tránh OOM
+            // Queue full → bỏ batch tránh OOM
         }
+    }
+
+    // -------------------------------
+    // GRACEFUL SHUTDOWN
+    // -------------------------------
+    @PreDestroy
+    public void shutdown() {
+        System.out.println("[SymbolWorker] Shutdown requested...");
+
+        // 1. Stop flush thread
+        running = false;
+        flushThread.interrupt();
+
+        // 2. Shutdown workerPool
+        workerPool.shutdown();
+
+        try {
+            if (!workerPool.awaitTermination(10, TimeUnit.SECONDS)) {
+                workerPool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            workerPool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        try {
+            flushDirtySymbols();
+        } catch (Exception ignored) {
+        }
+
     }
 }

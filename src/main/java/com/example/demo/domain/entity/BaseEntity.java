@@ -7,8 +7,8 @@ import lombok.Data;
 
 @Data
 public class BaseEntity implements Cloneable {
-    private long createdTime = Instant.now().toEpochMilli();
-    private long updatedTime = Instant.now().toEpochMilli();
+    private long createdTime;
+    private long updatedTime;
     private final AtomicInteger version = new AtomicInteger(0);
 
     private volatile int lastFlushedVersion = -1;

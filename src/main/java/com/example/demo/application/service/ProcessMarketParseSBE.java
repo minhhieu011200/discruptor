@@ -8,14 +8,15 @@ import org.springframework.stereotype.Service;
 import com.etrade.gateway.sbe.BooleanType;
 import com.etrade.gateway.sbe.MessageHeaderDecoder;
 import com.etrade.gateway.sbe.QuoteDecoder;
+import com.example.demo.application.annotation.Measured;
 import com.example.demo.application.dto.SymbolRequestDTO;
-import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.service.ProcessMarketParseService;
 
 @Service
 public class ProcessMarketParseSBE implements ProcessMarketParseService<byte[]> {
 
     @Override
+    @Measured(value = "parser.sbe.process", description = "Time to parse SBE message into DTO")
     public SymbolRequestDTO process(byte[] data) {
         UnsafeBuffer buffer = new UnsafeBuffer(ByteBuffer.wrap(data));
         // 1. Decode header

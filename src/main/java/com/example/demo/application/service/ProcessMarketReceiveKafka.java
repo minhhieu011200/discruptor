@@ -8,6 +8,7 @@ import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.service.ProcessMarketParseService;
 import com.example.demo.domain.service.ProcessMarketReceiveService;
 import com.example.demo.domain.service.PublishService;
+import com.example.demo.application.annotation.Measured;
 
 @Service
 public class ProcessMarketReceiveKafka implements ProcessMarketReceiveService<byte[]> {
@@ -21,6 +22,7 @@ public class ProcessMarketReceiveKafka implements ProcessMarketReceiveService<by
     }
 
     @Override
+    @Measured(value = "kafka.receive.process", description = "Time to process message received from Kafka and publish to disruptor")
     public void process(byte[] data) {
         SymbolRequestDTO me = processMarketParseSocket.process(data);
         if (me.getImtcode() == null) {

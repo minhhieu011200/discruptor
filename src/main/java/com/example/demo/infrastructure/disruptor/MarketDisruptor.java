@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.service.ProcessMarketEventService;
 import com.example.demo.domain.service.PublishService;
-import com.example.demo.infrastructure.metrics.MessageThroughputMetrics;
 import com.lmax.disruptor.BusySpinWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
@@ -17,13 +16,11 @@ public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
     private final int NUM_WORKERS = 4; // số lane / worker
     private final Disruptor<MarketEvent>[] disruptors = (Disruptor<MarketEvent>[]) new Disruptor[NUM_WORKERS];
     private final ProcessMarketEventService service;
-    private final MessageThroughputMetrics metrics;
     private static final int RING_BUFFER_SIZE = 1024; // power of 2
 
-    public MarketDisruptor(ProcessMarketEventService processMarketEvent, MessageThroughputMetrics metrics)
+    public MarketDisruptor(ProcessMarketEventService processMarketEvent)
             throws Exception {
         this.service = processMarketEvent;
-        this.metrics = metrics;
         for (int i = 0; i < NUM_WORKERS; i++) {
             final int lane = i;
             disruptors[i] = new Disruptor<>(
@@ -33,7 +30,7 @@ public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
                     ProducerType.SINGLE,
                     new BusySpinWaitStrategy());
 
-            disruptors[i].handleEventsWith(new MarketEventHandler(lane, service, metrics));
+            disruptors[i].handleEventsWith(new MarketEventHandler(lane, service));
 
             disruptors[i].start();
 

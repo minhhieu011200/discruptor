@@ -6,9 +6,6 @@ import com.example.demo.domain.entity.TranslogEntity;
 import com.example.demo.domain.repository.SymbolRepository;
 import com.example.demo.domain.repository.TranslogShardedQueueRepository;
 import com.example.demo.domain.service.ProcessMarketEventService;
-import com.example.demo.domain.service.PublishService;
-
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -47,6 +44,7 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
     }
 
     @Override
+    @com.example.demo.application.annotation.Measured(value = "disruptor.event.process", description = "Time to process a market event in disruptor")
     public void process(SymbolRequestDTO data) {
         String imt = data.getImtcode();
         if (imt == null || imt.length() == 0)

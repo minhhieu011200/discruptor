@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.5-SNAPSHOT</version>
+		<version>3.5.13</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
@@ -27,34 +27,18 @@
 		<url/>
 	</scm>
 	<properties>
-		<sbe-tool-artifactId>sbe-tool</sbe-tool-artifactId>
 		<java.version>21</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-opentelemetry</artifactId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.mybatis.spring.boot</groupId>
-			<artifactId>mybatis-spring-boot-starter</artifactId>
-			<version>4.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-			<version>3.0.2</version>
-		</dependency>
 
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -62,70 +46,21 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-opentelemetry-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<!-- Micrometer core for metrics registration (used to expose msgs/s gauge) -->
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux-test</artifactId>
+			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.mybatis.spring.boot</groupId>
-			<artifactId>mybatis-spring-boot-starter-test</artifactId>
-			<version>4.0.1</version>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.lmax</groupId>
-			<artifactId>disruptor</artifactId>
-			<version>4.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.java-websocket</groupId>
-			<artifactId>Java-WebSocket</artifactId>
-			<version>1.6.0</version>
-		</dependency>
-		<dependency>
-			<groupId>net.openhft</groupId>
-			<artifactId>chronicle-map</artifactId>
-			<version>2026.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-redis</artifactId>
-			<version>4.0.4</version>
-			<scope>compile</scope>
-		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
-		<dependency>
-			<groupId>com.github.ben-manes.caffeine</groupId>
-			<artifactId>caffeine</artifactId>
-			<version>3.2.3</version>
-			<scope>compile</scope>
 		</dependency>
 
-		<!-- Source: https://mvnrepository.com/artifact/org.springframework.kafka/spring-kafka -->
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
-			<version>4.0.4</version>
-			<scope>compile</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-kafka</artifactId>
-			<version>4.1.0-M4</version>
-			<scope>compile</scope>
-		</dependency>
-		
-		<dependency>
+			<dependency>
             <groupId>uk.co.real-logic</groupId>
 		    <artifactId>sbe-tool</artifactId>
             <version>1.37.1</version>
@@ -136,7 +71,55 @@
 			<artifactId>agrona</artifactId>
 			<version>2.4.0</version>
 		</dependency>
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+			<version>4.0.0</version>
+		</dependency>
 
+		<dependency>
+			<groupId>net.openhft</groupId>
+			<artifactId>chronicle-map</artifactId>
+			<version>2026.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+			<version>3.2.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+			 <version>2.6.0</version> 
+		</dependency>
+		<dependency>
+			<groupId>org.mybatis.spring.boot</groupId>
+			<artifactId>mybatis-spring-boot-starter</artifactId>
+			<version>3.0.5</version>
+		</dependency>
+			<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+		
 	</dependencies>
 
 	<build>
@@ -246,5 +229,6 @@
 			</releases>
 		</pluginRepository>
 	</pluginRepositories>
+
 
 </project>

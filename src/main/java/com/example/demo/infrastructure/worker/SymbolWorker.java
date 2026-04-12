@@ -9,6 +9,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.repository.SymbolRepository;
 import com.example.demo.infrastructure.mybatis.SymbolMapper;
@@ -18,8 +20,12 @@ import jakarta.annotation.PreDestroy;
 
 public class SymbolWorker {
     private static final int BATCH_SIZE = 5000;
-    private static final int WORKER_COUNT = 8;
-    private static final int FLUSH_INTERVAL_MS = 500;
+
+    @Value("${symbol.worker.count:4}")
+    private final int workerCount = 4;
+
+    @Value("${symbol.flush.interval.ms:500}")
+    private final int flushIntervalMs = 500;
 
     private final SymbolMapper mapper;
     private final SymbolRepository symbolRepository;
@@ -28,17 +34,19 @@ public class SymbolWorker {
     private Thread flushThread;
 
     // WorkerPool có bounded queue → tránh OOM
-    private final ExecutorService workerPool = new ThreadPoolExecutor(
-            WORKER_COUNT,
-            WORKER_COUNT,
-            0L,
-            TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<>(WORKER_COUNT * 2),
-            new ThreadPoolExecutor.DiscardPolicy());
+    private ExecutorService workerPool;
 
     public SymbolWorker(SymbolMapper mapper, SymbolRepository symbolRepository) {
         this.mapper = mapper;
         this.symbolRepository = symbolRepository;
+        // initialize workerPool using configured workerCount
+        this.workerPool = new ThreadPoolExecutor(
+                workerCount,
+                workerCount,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(workerCount * 2),
+                new ThreadPoolExecutor.DiscardPolicy());
     }
 
     // -------------------------------
@@ -59,7 +67,7 @@ public class SymbolWorker {
         while (running) {
             try {
                 flushDirtySymbols();
-                Thread.sleep(FLUSH_INTERVAL_MS);
+                Thread.sleep(flushIntervalMs);
             } catch (InterruptedException e) {
                 // nếu running = false → break
                 if (!running)

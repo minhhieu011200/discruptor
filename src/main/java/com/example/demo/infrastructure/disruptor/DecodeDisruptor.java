@@ -1,6 +1,7 @@
 package com.example.demo.infrastructure.disruptor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.example.demo.domain.service.ProcessMarketReceiveService;
 import com.example.demo.domain.service.PublishService;
@@ -16,15 +17,18 @@ public class DecodeDisruptor implements PublishService<Void, byte[]> {
     private final Disruptor<DecodeEvent> disruptorDecode;
     private final RingBuffer<DecodeEvent> ringBufferDecode;
 
-    private static final int RING_BUFFER_SIZE = 1024; // power
+    private final int ringBufferSize;
     private final ProcessMarketReceiveService<byte[]> service;
 
-    public DecodeDisruptor(ProcessMarketReceiveService<byte[]> processMarketReceiveService) throws Exception {
+    public DecodeDisruptor(
+            ProcessMarketReceiveService<byte[]> processMarketReceiveService,
+            @Value("${decode.ring.buffer.size:1024}") int ringBufferSize) throws Exception {
         this.service = processMarketReceiveService;
+        this.ringBufferSize = ringBufferSize;
 
         disruptorDecode = new Disruptor<>(
                 new DecodeEvent.Factory(),
-                RING_BUFFER_SIZE,
+                this.ringBufferSize,
                 Thread.ofPlatform().name("decode-worker").factory(),
                 ProducerType.SINGLE,
                 new BlockingWaitStrategy());

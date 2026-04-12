@@ -1,5 +1,6 @@
 package com.example.demo.infrastructure.metrics;
 
+import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -39,6 +40,17 @@ public class MetricAspect {
         Timer timer = timers.computeIfAbsent(metricName, k -> Timer.builder("queue_handler_duration_ms")
                 .tag("queue_name", metricName)
                 .description(measured.description())
+                .distributionStatisticExpiry(Duration.ofMinutes(5)) // Giữ thống kê trong 5 phút
+                .distributionStatisticBufferLength(5) // Buffer cho histogram
+                .serviceLevelObjectives(
+                        Duration.ofMillis(1),
+                        Duration.ofMillis(5),
+                        Duration.ofMillis(10),
+                        Duration.ofMillis(50),
+                        Duration.ofMillis(100),
+                        Duration.ofMillis(200),
+                        Duration.ofMillis(500),
+                        Duration.ofSeconds(1))
                 .register(meterRegistry));
 
         // Lấy hoặc tạo Counter

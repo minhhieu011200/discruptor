@@ -1,6 +1,7 @@
 package com.example.demo.infrastructure.disruptor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.service.ProcessMarketEventService;
@@ -13,19 +14,25 @@ import jakarta.annotation.PreDestroy;
 
 @Service("MarketDisruptor")
 public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
-    private final int NUM_WORKERS = 4; // số lane / worker
-    private final Disruptor<MarketEvent>[] disruptors = (Disruptor<MarketEvent>[]) new Disruptor[NUM_WORKERS];
+    private final int numWorkers; // số lane / worker
+    private final Disruptor<MarketEvent>[] disruptors;
     private final ProcessMarketEventService service;
-    private static final int RING_BUFFER_SIZE = 1024; // power of 2
+    private final int ringBufferSize; // power of 2
 
-    public MarketDisruptor(ProcessMarketEventService processMarketEvent)
+    public MarketDisruptor(ProcessMarketEventService processMarketEvent,
+            @Value("${market.disruptor.num.workers:4}") int numWorkers,
+            @Value("${market.ring.buffer.size:1024}") int ringBufferSize)
             throws Exception {
         this.service = processMarketEvent;
-        for (int i = 0; i < NUM_WORKERS; i++) {
+        this.numWorkers = numWorkers;
+        this.ringBufferSize = ringBufferSize;
+        this.disruptors = (Disruptor<MarketEvent>[]) new Disruptor[numWorkers];
+
+        for (int i = 0; i < numWorkers; i++) {
             final int lane = i;
             disruptors[i] = new Disruptor<>(
                     new MarketEvent.Factory(),
-                    RING_BUFFER_SIZE,
+                    this.ringBufferSize,
                     Thread.ofPlatform().name("lane-" + lane + "-").factory(),
                     ProducerType.SINGLE,
                     new BusySpinWaitStrategy());
@@ -40,7 +47,7 @@ public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
     // Publisher gọi: hash symbolId → lane
     @Override
     public Void publish(String channel, SymbolRequestDTO e) {
-        int lane = (channel.hashCode() & 0x7fffffff) % NUM_WORKERS;
+        int lane = (channel.hashCode() & 0x7fffffff) % numWorkers;
         long seq = disruptors[lane].getRingBuffer().next();
         try {
             MarketEvent ev = disruptors[lane].getRingBuffer().get(seq);

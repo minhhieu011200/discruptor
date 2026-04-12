@@ -1,0 +1,30 @@
+version: "3.3"
+services:
+  grafana:
+    user: "$UID:$GID"
+    restart: always
+    image: grafana/grafana:10.2.0
+    environment:
+      - GF_DEFAULT_APP_MODE=development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    user: root
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - ./prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'

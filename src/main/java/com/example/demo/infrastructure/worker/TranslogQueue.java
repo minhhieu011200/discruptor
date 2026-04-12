@@ -12,24 +12,33 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.beans.factory.annotation.Value;
 
 @Repository
 public class TranslogQueue implements TranslogShardedQueueRepository {
-    private static final int BATCH_SIZE = 10000;
-    private static final int WORKER_COUNT = 4; // số thread tiêu thụ chung
-    private static final int QUEUE_CAPACITY = 1000000;
-    private static final long FLUSH_MILLIS = 1000; // flush nếu item tồn > 500
+    private static final int BATCH_SIZE = 5000;
+    private static final int QUEUE_CAPACITY = 50000;
+
+    private final long flushMillis; // flush nếu item tồn > threshold
 
     private final MpmcArrayQueue<TranslogEntity> sharedQueue = new MpmcArrayQueue<>(QUEUE_CAPACITY);
-    private final ExecutorService executor = Executors.newFixedThreadPool(WORKER_COUNT);
+    private final int workerCount;
+    private final ExecutorService executor;
     private final TranslogMapper mapper;
-    private final TransLogWorker[] workers = new TransLogWorker[WORKER_COUNT];
+    private final TransLogWorker[] workers;
 
-    public TranslogQueue(TranslogMapper mapper) {
+    public TranslogQueue(TranslogMapper mapper,
+            @Value("${translog.worker.count:4}") int workerCount,
+            @Value("${translog.flush.millis:1000}") long flushMillis) {
         this.mapper = mapper;
+        this.workerCount = workerCount;
+        this.flushMillis = flushMillis;
+        this.executor = Executors.newFixedThreadPool(workerCount);
+        this.workers = new TransLogWorker[workerCount];
+
         // khởi cố định pool worker xử lý batch từ queue chung
-        for (int i = 0; i < WORKER_COUNT; i++) {
-            TransLogWorker worker = new TransLogWorker(sharedQueue, mapper, BATCH_SIZE, FLUSH_MILLIS);
+        for (int i = 0; i < workerCount; i++) {
+            TransLogWorker worker = new TransLogWorker(sharedQueue, mapper, BATCH_SIZE, this.flushMillis);
             workers[i] = worker;
             executor.submit(worker);
         }

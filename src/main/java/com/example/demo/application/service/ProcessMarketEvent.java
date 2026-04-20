@@ -110,8 +110,7 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
     private void processFxUsdFast(SymbolRequestDTO data, String imt) {
         SymbolEntity fxUsd = symbolRepository.get(imt);
         if (fxUsd == null) {
-            fxUsd = new SymbolEntity();
-            symbolRepository.set(imt, fxUsd);
+            return;
         }
         fxUsd.setBuyCurrency(data.getBuyCurrency());
         fxUsd.setSellCurrency(data.getSellCurrency());

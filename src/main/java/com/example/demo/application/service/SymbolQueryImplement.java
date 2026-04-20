@@ -22,25 +22,37 @@ public class SymbolQueryImplement implements SymbolQueryService {
     private final SymbolRepository symbolRepository;
     private final AccountRepository accountRepository;
 
-    public SymbolQueryImplement(SymbolRepository symbolRepository, AccountRepository accountRepository) {
+    private static final int CONCURRENCY = 50;
+
+    public SymbolQueryImplement(SymbolRepository symbolRepository,
+            AccountRepository accountRepository) {
         this.symbolRepository = symbolRepository;
         this.accountRepository = accountRepository;
     }
 
+    @Override
     public Mono<List<SymbolResponseDTO>> query(List<String> ids, String accountId) {
         return Flux.fromIterable(ids)
-                .map(id -> {
-                    SymbolEntity symbol = symbolRepository.get(id);
-                    if (symbol == null)
-                        return null;
+                // 👉 giới hạn concurrency + chạy trên boundedElastic (vì cache sync)
+                .flatMap(id -> Mono.fromCallable(() -> symbolRepository.get(id))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMap(symbol -> {
+                            if (symbol == null) {
+                                return Mono.empty();
+                            }
+                            String key = buildAccountKey(accountId, symbol.getImtcode());
 
-                    AccountEntity account = accountRepository.get(accountId + symbol.getImtcode());
-                    if (account == null)
-                        account = new AccountEntity();
+                            return Mono.fromCallable(() -> accountRepository.get(key))
+                                    .subscribeOn(Schedulers.boundedElastic())
+                                    .defaultIfEmpty(new AccountEntity())
+                                    .map(account -> SymbolResponseDTO.fromEntity(symbol, account));
+                        }),
+                        CONCURRENCY)
 
-                    return SymbolResponseDTO.fromEntity(symbol, account);
-                })
-                .filter(Objects::nonNull)
-                .collectList(); // -> Mono<List<SymbolResponseDTO>>
+                .collectList();
+    }
+
+    private String buildAccountKey(String accountId, String imtcode) {
+        return accountId + ":" + imtcode;
     }
 }

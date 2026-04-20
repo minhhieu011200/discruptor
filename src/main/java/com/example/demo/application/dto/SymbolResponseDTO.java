@@ -2,7 +2,6 @@ package com.example.demo.application.dto;
 
 import com.example.demo.domain.entity.AccountEntity;
 import com.example.demo.domain.entity.SymbolEntity;
-import lombok.Data;
 
 public record SymbolResponseDTO(
         double bid,

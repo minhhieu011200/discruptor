@@ -1,0 +1,72 @@
+<configuration>
+
+    <property name="LOG_PATH" value="logs"/>
+
+    <!-- ===================== -->
+    <!-- FILE APPENDER -->
+    <!-- ===================== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- file hiện tại -->
+        <file>${LOG_PATH}/app.log</file>
+
+        <!-- ===== ROLLING POLICY ===== -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- file archive -->
+            <fileNamePattern>${LOG_PATH}/app-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <!-- mỗi file max 100MB -->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- giữ log 7 ngày -->
+            <maxHistory>7</maxHistory>
+            <!-- tổng dung lượng -->
+            <totalSizeCap>50GB</totalSizeCap>
+
+        </rollingPolicy>
+
+        <!-- format log -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===================== -->
+    <!-- DISRUPTOR ASYNC APPENDER -->
+    <!-- ===================== -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+
+        <!-- 🔥 QUAN TRỌNG: tăng throughput -->
+        <queueSize>8192</queueSize>
+
+        <!-- giảm loss log -->
+        <discardingThreshold>0</discardingThreshold>
+
+        <!-- không block request thread -->
+        <neverBlock>true</neverBlock>
+
+        <!-- flush policy -->
+        <includeCallerData>false</includeCallerData>
+
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <!-- ===================== -->
+    <!-- CONSOLE (sync) -->
+    <!-- ===================== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- <logger name="reactor.netty.http.client" level="DEBUG"/>
+<logger name="reactor.netty.transport" level="DEBUG"/>
+<logger name="WebClientLogger" level="DEBUG"/>
+<logger name="reactor.netty" level="DEBUG"/> -->
+    <!-- ===================== -->
+    <!-- ROOT -->
+    <!-- ===================== -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+
+</configuration>

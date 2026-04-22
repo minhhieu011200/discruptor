@@ -11,8 +11,7 @@ public record SymbolResponseDTO(
         String imtcode,
         double spread,
         double marginBuyAccount,
-        double marginSellAccount,
-        double buyPriceTesury) {
+        double marginSellAccount) {
     public static SymbolResponseDTO fromEntity(SymbolEntity e, AccountEntity a) {
         double marginBuy = a != null ? a.getMarginBuy() : 0;
         double marginSell = a != null ? a.getMarginSell() : 0;
@@ -25,7 +24,6 @@ public record SymbolResponseDTO(
                 e.getImtcode(),
                 e.getSpread(),
                 marginBuy,
-                marginSell,
-                e.getAsk() + e.getSpread() + marginBuy);
+                marginSell);
     }
 }

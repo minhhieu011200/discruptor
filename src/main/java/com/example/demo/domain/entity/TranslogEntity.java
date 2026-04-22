@@ -12,8 +12,6 @@ public class TranslogEntity extends BaseEntity {
     private double ask;
     private String tenor;
     private double spread;
-    private double buyPriceTesury;
-    private double sellPriceTesury;;
 
     public void hydrate(
             String imtcode,
@@ -22,9 +20,7 @@ public class TranslogEntity extends BaseEntity {
             String tenor,
             double bid,
             double ask,
-            double spread,
-            double buyPriceTesury,
-            double sellPriceTesury) {
+            double spread) {
         this.imtcode = imtcode;
         this.buyCurrency = buyCurrency;
         this.sellCurrency = sellCurrency;
@@ -32,8 +28,6 @@ public class TranslogEntity extends BaseEntity {
         this.bid = bid;
         this.ask = ask;
         this.spread = spread;
-        this.buyPriceTesury = buyPriceTesury;
-        this.sellPriceTesury = sellPriceTesury;
         setVersion();
     }
 }

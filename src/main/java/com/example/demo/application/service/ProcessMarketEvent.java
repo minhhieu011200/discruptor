@@ -76,10 +76,6 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         usdVnd.setStatus(data.getStatus());
         usdVnd.setImtCode();
 
-        // treasury price
-        usdVnd.setBuyPriceTesury(data.getAsk());
-        usdVnd.setSellPriceTesury(data.getBid());
-
         fastTranslog(usdVnd);
 
         // Publish cho các symbol USDXXX, nhưng KHÔNG chứa VND
@@ -119,10 +115,6 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         fxUsd.setTenor(data.getTenor());
         fxUsd.setStatus(data.getStatus());
         fxUsd.setImtCode();
-
-        fxUsd.setBuyPriceTesury(data.getAsk() + 1);
-        fxUsd.setSellPriceTesury(data.getBid() - 1);
-        // System.out.println("FX-USD updated: " + fxUsd.getImtcode());
         fastTranslog(fxUsd);
 
         // Nếu không liên quan USD thì return sớm → tối ưu
@@ -178,9 +170,7 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
                 s.getBuyCurrency(), s.getSellCurrency(),
                 s.getTenor(),
                 s.getBid(), s.getAsk(),
-                s.getSpread(),
-                s.getBuyPriceTesury(),
-                s.getSellPriceTesury());
+                s.getSpread());
 
         // Mỗi t là object riêng → không có overwrite
         translogShardedQueueRepository.offer(t);

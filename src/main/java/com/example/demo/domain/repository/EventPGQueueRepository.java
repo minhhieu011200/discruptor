@@ -1,9 +1,11 @@
 package com.example.demo.domain.repository;
 
-public interface EventPGQueueRepository {
-    void offer(String channel, Object event);
+import com.fasterxml.jackson.databind.JsonNode;
 
-    Object poll(int partition);
+public interface EventPGQueueRepository {
+    void offer(String channel, JsonNode event);
+
+    JsonNode poll(int partition);
 
     int getNumWorkers();
 }

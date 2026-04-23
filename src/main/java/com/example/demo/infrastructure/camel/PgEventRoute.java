@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.domain.repository.EventPGQueueRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class PgEventRoute extends RouteBuilder {
@@ -16,10 +18,12 @@ public class PgEventRoute extends RouteBuilder {
 
     private final CamelContext camelContext;
     private final EventPGQueueRepository eventQueue;
+    private final ObjectMapper mapper;
 
-    public PgEventRoute(CamelContext camelContext, EventPGQueueRepository eventQueue) {
+    public PgEventRoute(CamelContext camelContext, EventPGQueueRepository eventQueue, ObjectMapper mapper) {
         this.camelContext = camelContext;
         this.eventQueue = eventQueue;
+        this.mapper = mapper;
     }
 
     @Override
@@ -52,10 +56,12 @@ public class PgEventRoute extends RouteBuilder {
         from(endpoint)
                 .routeId("pg-listener")
                 .autoStartup(true)
-                .log("📥 Received PG event: ${body}")
+                .log("Received PG event: ${body}")
                 .process(e -> {
                     String body = e.getIn().getBody(String.class);
-                    eventQueue.offer(body, e);
+                    JsonNode root = mapper.readTree(body);
+                    String datatype = root.path("datatype").asText();
+                    eventQueue.offer(datatype, root);
                 });
     }
 }

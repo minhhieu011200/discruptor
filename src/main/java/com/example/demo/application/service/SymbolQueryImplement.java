@@ -2,22 +2,21 @@ package com.example.demo.application.service;
 
 import com.example.demo.application.dto.SymbolResponseDTO;
 import com.example.demo.domain.entity.AccountEntity;
-import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.repository.AccountRepository;
 import com.example.demo.domain.repository.SymbolRepository;
 import com.example.demo.domain.service.SymbolQueryService;
+
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 @Service
+@Slf4j
 public class SymbolQueryImplement implements SymbolQueryService {
     private final SymbolRepository symbolRepository;
     private final AccountRepository accountRepository;
@@ -41,7 +40,7 @@ public class SymbolQueryImplement implements SymbolQueryService {
                                 return Mono.empty();
                             }
                             String key = buildAccountKey(accountId, symbol.getImtcode());
-
+                            log.info("Loading account: {} {}", key, accountRepository.get(key));
                             return Mono.fromCallable(() -> accountRepository.get(key))
                                     .subscribeOn(Schedulers.boundedElastic())
                                     .defaultIfEmpty(new AccountEntity())
@@ -53,6 +52,6 @@ public class SymbolQueryImplement implements SymbolQueryService {
     }
 
     private String buildAccountKey(String accountId, String imtcode) {
-        return accountId + ":" + imtcode;
+        return accountId + imtcode;
     }
 }

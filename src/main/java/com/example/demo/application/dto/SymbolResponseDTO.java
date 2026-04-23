@@ -3,6 +3,9 @@ package com.example.demo.application.dto;
 import com.example.demo.domain.entity.AccountEntity;
 import com.example.demo.domain.entity.SymbolEntity;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public record SymbolResponseDTO(
         double bid,
         double ask,
@@ -15,7 +18,6 @@ public record SymbolResponseDTO(
     public static SymbolResponseDTO fromEntity(SymbolEntity e, AccountEntity a) {
         double marginBuy = a != null ? a.getMarginBuy() : 0;
         double marginSell = a != null ? a.getMarginSell() : 0;
-
         return new SymbolResponseDTO(
                 e.getBid(),
                 e.getAsk(),

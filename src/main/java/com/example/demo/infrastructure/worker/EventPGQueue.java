@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import com.example.demo.domain.repository.EventPGQueueRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Repository
 public class EventPGQueue implements EventPGQueueRepository {
@@ -28,7 +29,7 @@ public class EventPGQueue implements EventPGQueueRepository {
         return Math.abs(channel.hashCode()) % numWorkers;
     }
 
-    public void offer(String channel, Object event) {
+    public void offer(String channel, JsonNode event) {
         int partition = getPartition(channel);
         ManyToOneConcurrentArrayQueue<Object> queue = queues[partition];
 
@@ -37,8 +38,8 @@ public class EventPGQueue implements EventPGQueueRepository {
         }
     }
 
-    public Object poll(int partition) {
-        return queues[partition].poll();
+    public JsonNode poll(int partition) {
+        return (JsonNode) queues[partition].poll();
     }
 
 }

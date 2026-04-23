@@ -4,7 +4,7 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.infrastructure.mybatis.AccountMapper">
   <select id="getAllAccount" resultType="com.example.demo.domain.entity.AccountEntity">
-    select c.id, c.cifid , c.imtcode , c.marginbuy , c.marginsell, 
+    select c.id, c.cifid , c.imtcode , c.marginbuy marginBuy, c.marginsell marginSell, 
            (EXTRACT(EPOCH FROM c.lastchange) * 1000)::bigint AS "updatedTime",
            (EXTRACT(EPOCH FROM c.lastchange) * 1000)::bigint AS "createdTime"
     from cfmargin c where c.status='A'

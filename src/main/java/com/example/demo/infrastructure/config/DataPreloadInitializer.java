@@ -23,6 +23,6 @@ public class DataPreloadInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        dataPreloadService.preloadAllData();
+        // dataPreloadService.preloadAllData();
     }
 }

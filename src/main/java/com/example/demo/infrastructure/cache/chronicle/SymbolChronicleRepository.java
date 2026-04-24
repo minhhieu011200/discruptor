@@ -1,71 +1,80 @@
 package com.example.demo.infrastructure.cache.chronicle;
 
+import net.openhft.chronicle.map.ChronicleMap;
+import org.springframework.stereotype.Repository;
+import jakarta.annotation.PostConstruct;
+
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.repository.SymbolRepository;
 
-import net.openhft.chronicle.map.ChronicleMap;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
 
-// @Repository
+@Repository
 public class SymbolChronicleRepository implements SymbolRepository {
-    ChronicleMap<String, SymbolEntity> symbolChronicleMap = ChronicleMap
-            .of(String.class, SymbolEntity.class)
-            .name("symbol-price-map")
-            .entries(10_000000)
-            .averageKeySize(64) // khoảng 20 ký tự trung bình cho key
-            .averageValueSize(200)
-            .create();
+
+    private ChronicleMap<String, SymbolEntity> symbolCache;
+
+    @PostConstruct
+    public void init() throws IOException {
+        File file = new File("symbol-cache.dat");
+
+        this.symbolCache = ChronicleMap
+                .of(String.class, SymbolEntity.class)
+                .name("symbol-cache")
+                .averageKeySize(16)
+                .averageValueSize(512)
+                .entries(1_000_000)
+                // .valueMarshaller(new SymbolEntityMarshaller())
+                .createPersistedTo(file);
+
+    }
 
     @Override
     public SymbolEntity get(String id) {
-        return symbolChronicleMap.get(id);
+        return symbolCache.get(id);
     }
 
     @Override
     public void set(String id, SymbolEntity entity) {
-        symbolChronicleMap.put(id, entity);
+        symbolCache.put(id, entity);
     }
 
     @Override
     public void delete(String id) {
-        symbolChronicleMap.remove(id);
+        symbolCache.remove(id);
     }
 
     @Override
     public void update(String id, SymbolEntity entity) {
-        symbolChronicleMap.compute(id, (key, oldValue) -> {
-            if (oldValue == null) {
+        symbolCache.compute(id, (key, oldValue) -> {
+            if (oldValue == null)
                 return entity;
-            }
-            if (entity.getBuyCurrency() != null) {
+
+            if (entity.getBuyCurrency() != null)
                 oldValue.setBuyCurrency(entity.getBuyCurrency());
-            }
-            if (entity.getSellCurrency() != null) {
+            if (entity.getSellCurrency() != null)
                 oldValue.setSellCurrency(entity.getSellCurrency());
-            }
-            if (entity.getImtcode() != null) {
+            if (entity.getImtcode() != null)
                 oldValue.setImtcode(entity.getImtcode());
-            }
-            if (entity.getBid() != 0) {
+            if (entity.getBid() != 0)
                 oldValue.setBid(entity.getBid());
-            }
-            if (entity.getAsk() != 0) {
+            if (entity.getAsk() != 0)
                 oldValue.setAsk(entity.getAsk());
-            }
-            if (entity.getTenor() != null) {
+            if (entity.getTenor() != null)
                 oldValue.setTenor(entity.getTenor());
-            }
-            if (entity.getSpread() != 0) {
+            if (entity.getSpread() != 0)
                 oldValue.setSpread(entity.getSpread());
-            }
-            if (entity.getStatus() != null) {
+            if (entity.getStatus() != null)
                 oldValue.setStatus(entity.getStatus());
-            }
+
             return oldValue;
         });
     }
 
     @Override
-    public ChronicleMap<String, SymbolEntity> getAll() {
-        return symbolChronicleMap;
+    public Map<String, SymbolEntity> getAll() {
+        return symbolCache; // ChronicleMap implements Map
     }
 }

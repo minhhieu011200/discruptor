@@ -1,9 +1,10 @@
 package com.example.demo.domain.entity;
 
 import lombok.Data;
+import net.openhft.chronicle.bytes.BytesMarshallable;
 
 @Data
-public class SymbolEntity extends BaseEntity {
+public class SymbolEntity extends BaseEntity implements BytesMarshallable {
     private double bid;
     private double ask;
     private String buyCurrency;

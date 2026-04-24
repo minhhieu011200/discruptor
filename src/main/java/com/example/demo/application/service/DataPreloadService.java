@@ -90,7 +90,6 @@ public class DataPreloadService {
 
             int loadedCount = 0;
             for (AccountEntity account : accounts) {
-                log.info("Loading account: {} {}", account.getCifid(), account.getImtcode());
                 if (!StringUtils.isBlank(account.getImtcode())) {
                     accountRepository.set(account.getCifid() + account.getImtcode(), account);
                     loadedCount++;

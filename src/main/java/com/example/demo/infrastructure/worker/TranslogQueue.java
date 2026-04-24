@@ -19,21 +19,14 @@ public class TranslogQueue implements TranslogShardedQueueRepository {
         int retry = 0;
 
         while (!sharedQueue.offer(entity)) {
-            if (retry++ < 100) {
+            if (retry++ < 10) {
                 Thread.onSpinWait();
-            } else {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
             }
         }
     }
 
     @Override
-    public TranslogEntity poll(int partition) {
+    public TranslogEntity poll() {
         return sharedQueue.poll();
     }
 

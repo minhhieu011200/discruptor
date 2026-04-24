@@ -40,7 +40,6 @@ public class SymbolQueryImplement implements SymbolQueryService {
                                 return Mono.empty();
                             }
                             String key = buildAccountKey(accountId, symbol.getImtcode());
-                            log.info("Loading account: {} {}", key, accountRepository.get(key));
                             return Mono.fromCallable(() -> accountRepository.get(key))
                                     .subscribeOn(Schedulers.boundedElastic())
                                     .defaultIfEmpty(new AccountEntity())

@@ -2,6 +2,7 @@ package com.example.demo.infrastructure.worker;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -13,68 +14,97 @@ import org.springframework.stereotype.Component;
 import com.example.demo.infrastructure.mybatis.TranslogMapper;
 
 @Component
+@Slf4j
 public class TranslogWorkerStarter {
 
     private final TranslogQueue queue;
     private final TranslogMapper mapper;
-
-    private final int workerCount;
     private final long flushMillis;
+    private final int workerCount;
 
-    private ExecutorService executor;
-    private TransLogWorker[] workers;
+    private ExecutorService workerExecutor;
+    private TransLogWorker worker;
+
+    private ExecutorService flushExecutor;
 
     public TranslogWorkerStarter(
             TranslogQueue queue,
             TranslogMapper mapper,
-            @Value("${translog.worker.count:4}") int workerCount,
-            @Value("${translog.flush.millis:1000}") long flushMillis) {
+            @Value("${translog.flush.millis:50}") long flushMillis,
+            @Value("${translog.worker.count:4}") int workerCount) {
 
         this.queue = queue;
         this.mapper = mapper;
-        this.workerCount = workerCount;
         this.flushMillis = flushMillis;
+        this.workerCount = workerCount;
     }
 
     @PostConstruct
     public void start() {
-        executor = Executors.newFixedThreadPool(workerCount, r -> {
+
+        // 1. Worker executor (1 thread)
+        workerExecutor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r);
-            t.setName("translog-worker-" + t.getId());
+            t.setName("translog-worker");
+            t.setDaemon(true);
             return t;
         });
 
-        workers = new TransLogWorker[workerCount];
+        // 2. Flush executor (DB writer pool)
+        flushExecutor = Executors.newFixedThreadPool(workerCount, r -> {
+            Thread t = new Thread(r);
+            t.setName("translog-flush-" + t.getId());
+            t.setDaemon(true);
+            return t;
+        });
 
-        for (int i = 0; i < workerCount; i++) {
-            TransLogWorker worker = new TransLogWorker(queue, i, mapper, 5000, flushMillis);
+        // 3. Inject flushExecutor vào worker
+        worker = new TransLogWorker(
+                queue,
+                mapper,
+                5000,
+                flushMillis,
+                flushExecutor // 🔥 QUAN TRỌNG
+        );
 
-            workers[i] = worker;
-            executor.submit(worker);
-        }
+        workerExecutor.submit(worker);
 
-        System.out.println("[TranslogWorkerStarter] Started " + workerCount + " workers");
+        log.info("[TranslogWorkerStarter] Started worker (Executor)");
     }
 
     @PreDestroy
     public void stop() {
-        System.out.println("[TranslogWorkerStarter] Stopping...");
+        log.info("[TranslogWorkerStarter] Stopping...");
 
-        for (TransLogWorker w : workers) {
-            w.shutdown();
+        if (worker != null) {
+            worker.shutdown();
         }
 
-        executor.shutdown();
-
-        try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
+        if (workerExecutor != null) {
+            workerExecutor.shutdown();
+            try {
+                if (!workerExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    workerExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                workerExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
         }
 
-        System.out.println("[TranslogWorkerStarter] Stopped cleanly");
+        // 🔥 QUAN TRỌNG: shutdown flushExecutor
+        if (flushExecutor != null) {
+            flushExecutor.shutdown();
+            try {
+                if (!flushExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    flushExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                flushExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        log.info("[TranslogWorkerStarter] Stopped cleanly");
     }
 }

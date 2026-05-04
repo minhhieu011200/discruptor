@@ -1,153 +1,121 @@
 package com.example.demo.infrastructure.worker;
 
+import com.example.demo.domain.entity.SymbolEntity;
+import com.example.demo.domain.repository.SymbolQueueRepository;
+import com.example.demo.infrastructure.mybatis.SymbolMapper;
+import com.example.demo.domain.service.PublishService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
-import org.springframework.beans.factory.annotation.Value;
+@Slf4j
+public class SymbolWorker implements Runnable {
 
-import com.example.demo.domain.entity.SymbolEntity;
-import com.example.demo.domain.repository.SymbolRepository;
-import com.example.demo.infrastructure.mybatis.SymbolMapper;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-
-public class SymbolWorker {
-    private static final int BATCH_SIZE = 5000;
-
-    @Value("${symbol.worker.count:4}")
-    private final int workerCount = 4;
-
-    @Value("${symbol.flush.interval.ms:500}")
-    private final int flushIntervalMs = 500;
-
+    private final SymbolQueueRepository queue;
     private final SymbolMapper mapper;
-    private final SymbolRepository symbolRepository;
-
+    private final PublishService<Void, String> redisPublishService;
+    private final ObjectMapper objectMapper;
+    private final int batchSize;
+    private final long maxWaitMillis;
+    private final ExecutorService flushExecutor;
     private volatile boolean running = true;
-    private Thread flushThread;
 
-    // WorkerPool có bounded queue → tránh OOM
-    private ExecutorService workerPool;
-
-    public SymbolWorker(SymbolMapper mapper, SymbolRepository symbolRepository) {
+    public SymbolWorker(SymbolQueueRepository queue,
+            SymbolMapper mapper,
+            PublishService<Void, String> redisPublishService,
+            ObjectMapper objectMapper,
+            int batchSize,
+            long maxWaitMillis,
+            ExecutorService flushExecutor) {
+        this.queue = queue;
         this.mapper = mapper;
-        this.symbolRepository = symbolRepository;
-        // initialize workerPool using configured workerCount
-        this.workerPool = new ThreadPoolExecutor(
-                workerCount,
-                workerCount,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(workerCount * 2),
-                new ThreadPoolExecutor.DiscardPolicy());
+        this.redisPublishService = redisPublishService;
+        this.objectMapper = objectMapper;
+        this.batchSize = batchSize;
+        this.maxWaitMillis = maxWaitMillis;
+        this.flushExecutor = flushExecutor;
     }
 
-    // -------------------------------
-    // STARTUP
-    // -------------------------------
-    @PostConstruct
-    public void init() {
-        flushThread = new Thread(this::flushLoop, "symbol-flush-thread");
-        flushThread.setDaemon(true);
-        flushThread.start();
-        System.out.println("[SymbolWorker] Started");
+    public void shutdown() {
+        running = false;
     }
 
-    // -------------------------------
-    // MAIN FLUSH LOOP
-    // -------------------------------
-    private void flushLoop() {
-        while (running) {
-            try {
-                flushDirtySymbols();
-                Thread.sleep(flushIntervalMs);
-            } catch (InterruptedException e) {
-                // nếu running = false → break
-                if (!running)
-                    break;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+    @Override
+    public void run() {
+        Map<String, SymbolEntity> batchMap = new HashMap<>(batchSize);
+        long firstAddTime = 0;
+        long timeoutNanos = maxWaitMillis * 1_000_000L;
 
-        System.out.println("[SymbolWorker] flushLoop stopped");
-    }
+        while (running || !queue.isEmpty() || !batchMap.isEmpty()) {
+            SymbolEntity item = queue.poll();
+            long now = System.nanoTime();
 
-    // -------------------------------
-    // FLUSHING LOGIC
-    // -------------------------------
-    private void flushDirtySymbols() {
+            if (item != null) {
+                if (batchMap.isEmpty()) {
+                    firstAddTime = now;
+                }
 
-        Map<String, SymbolEntity> map = symbolRepository.getAll();
+                SymbolEntity cloned = cloneSymbol(item);
+                batchMap.put(cloned.getImtcode(), cloned);
 
-        List<SymbolEntity> buffer = new ArrayList<>(BATCH_SIZE);
+                try {
+                    String json = objectMapper.writeValueAsString(cloned);
+                    redisPublishService.publish("fx-prices-channel", json);
+                } catch (Exception e) {
+                    log.error("Failed to serialize symbol for redis", e);
+                }
 
-        for (SymbolEntity s : map.values()) {
-
-            if (!s.isDirty())
+                if (batchMap.size() >= batchSize) {
+                    flush(new ArrayList<>(batchMap.values()));
+                    batchMap.clear();
+                }
                 continue;
-
-            buffer.add((SymbolEntity) s.clone());
-            s.markClean();
-
-            if (buffer.size() >= BATCH_SIZE) {
-                submitBatch(new ArrayList<>(buffer));
-                buffer.clear();
             }
+
+            if (!batchMap.isEmpty() && timeoutNanos > 0 && now - firstAddTime >= timeoutNanos) {
+                flush(new ArrayList<>(batchMap.values()));
+                batchMap.clear();
+                continue;
+            }
+
+            Thread.yield();
         }
 
-        if (!buffer.isEmpty())
-            submitBatch(buffer);
+        if (!batchMap.isEmpty()) {
+            flush(new ArrayList<>(batchMap.values()));
+        }
     }
 
-    private void submitBatch(List<SymbolEntity> batch) {
+    private SymbolEntity cloneSymbol(SymbolEntity s) {
+        SymbolEntity copy = new SymbolEntity();
+        copy.setImtcode(s.getImtcode());
+        copy.setBuyCurrency(s.getBuyCurrency());
+        copy.setSellCurrency(s.getSellCurrency());
+        copy.setBid(s.getBid());
+        copy.setAsk(s.getAsk());
+        copy.setTenor(s.getTenor());
+        copy.setStatus(s.getStatus());
+        copy.setSpread(s.getSpread());
+        return copy;
+    }
+
+    private void flush(List<SymbolEntity> batch) {
         try {
-            workerPool.submit(() -> {
+            flushExecutor.submit(() -> {
                 try {
                     mapper.batchUpsert(batch);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("[SymbolWorker flush error] " + e.getMessage(), e);
                 }
             });
-        } catch (RejectedExecutionException ignored) {
-            // Queue full → bỏ batch tránh OOM
+        } catch (RejectedExecutionException ex) {
+            log.error("[SymbolWorker flush rejected] executor overload");
         }
-    }
-
-    // -------------------------------
-    // GRACEFUL SHUTDOWN
-    // -------------------------------
-    @PreDestroy
-    public void shutdown() {
-        System.out.println("[SymbolWorker] Shutdown requested...");
-
-        // 1. Stop flush thread
-        running = false;
-        flushThread.interrupt();
-
-        // 2. Shutdown workerPool
-        workerPool.shutdown();
-
-        try {
-            if (!workerPool.awaitTermination(10, TimeUnit.SECONDS)) {
-                workerPool.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            workerPool.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
-        try {
-            flushDirtySymbols();
-        } catch (Exception ignored) {
-        }
-
     }
 }

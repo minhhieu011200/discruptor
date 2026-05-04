@@ -10,7 +10,7 @@ import com.example.demo.domain.repository.AccountRepository;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-@Repository
+// @Repository
 public class AccountCaffeineRepository implements AccountRepository {
     private final Cache<String, AccountEntity> accountImtCodeCache = Caffeine.newBuilder()
             .maximumSize(10_000_000) // max 10 triệu entries

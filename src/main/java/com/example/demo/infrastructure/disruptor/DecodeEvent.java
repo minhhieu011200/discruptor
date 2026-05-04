@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class DecodeEvent {
     public byte[] data;
+    public String traceId;
+    public long startTime;
 
     public static class Factory implements EventFactory<DecodeEvent> {
         @Override

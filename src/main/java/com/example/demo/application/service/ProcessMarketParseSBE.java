@@ -13,7 +13,7 @@ import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.service.ProcessMarketParseService;
 
 @Service
-public class ProcessMarketParseSBE implements ProcessMarketParseService<byte[]> {
+public class ProcessMarketParseSBE implements ProcessMarketParseService {
 
     @Override
     @Measured(value = "parser.sbe.process", description = "Time to parse SBE message into DTO")

@@ -3,12 +3,14 @@ package com.example.demo.application.service.pgEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
+import com.example.demo.application.annotation.Measured;
 import com.example.demo.application.annotation.PgEventType;
 import com.example.demo.domain.entity.AccountEntity;
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.repository.AccountRepository;
 import com.example.demo.domain.service.ProcessPgEventService;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.example.demo.application.utils.JsonUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,17 +28,18 @@ public class ProcessPgEventCFImplement implements ProcessPgEventService {
     }
 
     @Override
+    @Measured(value = "pg.event.cf", description = "Time to process CF event")
     public void process(JsonNode message) {
-        log.info("Process CF event: {}", message);
-        JsonNode refidNode = parseRefId(message.path("refid").asText());
-        log.info("Refid node: {}", refidNode);
+        JsonNode refidNode = JsonUtils.parseRefId(objectMapper, message.path("refid").asText());
         if (refidNode == null)
             return;
 
-        String cfid = extractText(refidNode, "CIFID");
-        String imtcode = extractText(refidNode, "IMTCODE");
-        double marginBuy = extractDouble(refidNode, "MARGINBUY");
-        double marginSell = extractDouble(refidNode, "MARGINSELL");
+        String cfid = JsonUtils.extractText(refidNode, "CIFID");
+        String imtcode = JsonUtils.extractText(refidNode, "IMTCODE");
+        Double marginBuyObj = JsonUtils.extractDouble(refidNode, "MARGINBUY");
+        Double marginSellObj = JsonUtils.extractDouble(refidNode, "MARGINSELL");
+        double marginBuy = marginBuyObj != null ? marginBuyObj : 0.0;
+        double marginSell = marginSellObj != null ? marginSellObj : 0.0;
         if (cfid == null || imtcode == null) {
             log.error("Missing CIFID or IMTCODE: {}", refidNode);
             return;
@@ -44,8 +47,6 @@ public class ProcessPgEventCFImplement implements ProcessPgEventService {
         String accountKey = cfid + imtcode;
 
         AccountEntity account = accountRepository.get(accountKey);
-        log.info("Creating new account with key: {} {}", accountKey, account);
-        // Nếu chưa có thì tạo mới + set version luôn
         if (account == null) {
             account = new AccountEntity();
 
@@ -58,51 +59,8 @@ public class ProcessPgEventCFImplement implements ProcessPgEventService {
             accountRepository.set(accountKey, account);
             return;
         }
-
-        // Nếu đã có thì update
         account.setMarginBuy(marginBuy);
         account.setMarginSell(marginSell);
-        account.setVersion(); // 🔥 set version khi update
-    }
-
-    private JsonNode parseRefId(String raw) {
-        try {
-            return objectMapper.readTree(raw);
-        } catch (Exception e) {
-            log.error("Cannot parse refid JSON: {}", raw, e);
-            return null;
-        }
-    }
-
-    private String extractText(JsonNode node, String field) {
-        JsonNode f = node.get(field);
-        return (f != null && !f.isNull()) ? f.asText() : null;
-    }
-
-    private Double extractDouble(JsonNode node, String field) {
-        JsonNode f = node.get(field);
-        if (f == null || f.isNull())
-            return null;
-
-        // Nếu là số → dùng trực tiếp
-        if (f.isNumber()) {
-            return f.asDouble();
-        }
-
-        // Nếu là string → parse
-        if (f.isTextual()) {
-            String txt = f.asText().trim();
-            if (txt.isEmpty())
-                return null;
-
-            try {
-                return Double.parseDouble(txt);
-            } catch (NumberFormatException e) {
-                log.warn("Cannot parse double from field {} with value {}", field, txt);
-                return null;
-            }
-        }
-
-        return null;
+        account.setVersion();
     }
 }

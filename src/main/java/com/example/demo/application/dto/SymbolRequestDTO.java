@@ -18,6 +18,8 @@ public class SymbolRequestDTO {
     private String status;
 
     private String imtcode;
+    private String traceId;
+    private long startTime;
 
     public void hydrate(
             double bid,

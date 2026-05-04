@@ -45,6 +45,11 @@ public class DecodeDisruptor implements PublishService<Void, byte[]> {
         try {
             DecodeEvent event = ringBufferDecode.get(sequence);
             event.data = data;
+            event.traceId = org.slf4j.MDC.get("traceId");
+            
+            String st = org.slf4j.MDC.get("startTime");
+            if (st != null) event.startTime = Long.parseLong(st);
+            
         } finally {
             ringBufferDecode.publish(sequence);
         }

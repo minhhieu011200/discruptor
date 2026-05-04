@@ -1,8 +1,11 @@
 package com.example.demo.application.service;
 
+import com.example.demo.application.annotation.Measured;
+import com.example.demo.application.annotation.TraceLog;
 import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.entity.TranslogEntity;
+import com.example.demo.domain.repository.SymbolQueueRepository;
 import com.example.demo.domain.repository.SymbolRepository;
 import com.example.demo.domain.repository.TranslogShardedQueueRepository;
 import com.example.demo.domain.service.ProcessMarketEventService;
@@ -27,12 +30,14 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
 
     private final SymbolRepository symbolRepository;
     private final TranslogShardedQueueRepository translogShardedQueueRepository;
+    private final SymbolQueueRepository symbolQueueRepository;
 
     public ProcessMarketEvent(
             // @Qualifier("RedisPubSub") PublishService<Void, SymbolEntity>
             // redisPublishService,
             SymbolRepository symbolRepository,
-            TranslogShardedQueueRepository translogShardedQueueRepository
+            TranslogShardedQueueRepository translogShardedQueueRepository,
+            SymbolQueueRepository symbolQueueRepository
     // @Qualifier("MarketDisruptor") PublishService<Void, SymbolRequestDTO>
     // marketDisruptor
     ) {
@@ -40,11 +45,13 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         // this.redisPublishService = redisPublishService;
         this.symbolRepository = symbolRepository;
         this.translogShardedQueueRepository = translogShardedQueueRepository;
+        this.symbolQueueRepository = symbolQueueRepository;
         // this.marketDisruptor = marketDisruptor;
     }
 
     @Override
-    @com.example.demo.application.annotation.Measured(value = "disruptor.event.process", description = "Time to process a market event in disruptor")
+    @Measured(value = "disruptor.event.process", description = "Time to process a market event in disruptor")
+    @TraceLog("ProcessMarketEvent")
     public void process(SymbolRequestDTO data) {
         String imt = data.getImtcode();
         if (imt == null || imt.length() == 0)
@@ -174,6 +181,7 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
 
         // Mỗi t là object riêng → không có overwrite
         translogShardedQueueRepository.offer(t);
+        symbolQueueRepository.offer(s);
     }
 
 }

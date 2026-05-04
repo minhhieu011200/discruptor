@@ -13,6 +13,9 @@ public class SymbolEntity extends BaseEntity implements BytesMarshallable {
     private String status;
     private String imtcode;
     private double spread;
+    private long validFrom;
+    private long validTill;
+    private String rateQuoteID;
 
     public void setImtCode() {
         this.imtcode = buyCurrency + sellCurrency;

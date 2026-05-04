@@ -83,6 +83,12 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         usdVnd.setStatus(data.getStatus());
         usdVnd.setImtCode();
 
+        usdVnd.setValidFrom(data.getValidFrom());
+        usdVnd.setValidTill(data.getValidTill());
+
+        usdVnd.setVersion();
+        symbolRepository.set("USDVND", usdVnd);
+
         fastTranslog(usdVnd);
 
         // Publish cho các symbol USDXXX, nhưng KHÔNG chứa VND
@@ -122,6 +128,13 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         fxUsd.setTenor(data.getTenor());
         fxUsd.setStatus(data.getStatus());
         fxUsd.setImtCode();
+        fxUsd.setValidFrom(data.getValidFrom());
+        fxUsd.setValidTill(data.getValidTill());
+        fxUsd.setRateQuoteID(data.getRateQuoteID());
+
+         fxUsd.setVersion();
+         symbolRepository.set(imt, fxUsd);
+
         fastTranslog(fxUsd);
 
         // Nếu không liên quan USD thì return sớm → tối ưu
@@ -158,6 +171,12 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         fxVnd.setSellCurrency("VND");
         fxVnd.setTenor(data.getTenor());
         fxVnd.setImtCode();
+        fxVnd.setValidFrom(data.getValidFrom());
+        fxVnd.setValidTill(data.getValidTill());
+        fxVnd.setRateQuoteID(data.getRateQuoteID());
+
+        fxVnd.setVersion();
+        symbolRepository.set(crossImt, fxVnd);
 
         fastTranslog(fxVnd);
     }
@@ -177,7 +196,9 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
                 s.getBuyCurrency(), s.getSellCurrency(),
                 s.getTenor(),
                 s.getBid(), s.getAsk(),
-                s.getSpread());
+                s.getSpread(),
+                s.getValidFrom(), s.getValidTill(),
+                s.getRateQuoteID());
 
         // Mỗi t là object riêng → không có overwrite
         translogShardedQueueRepository.offer(t);

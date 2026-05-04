@@ -109,7 +109,7 @@ public class SymbolWorker implements Runnable {
         try {
             flushExecutor.submit(() -> {
                 try {
-                    // mapper.batchUpsert(batch);
+                    mapper.batchUpsert(batch);
                 } catch (Exception e) {
                     log.error("[SymbolWorker flush error] " + e.getMessage(), e);
                 }

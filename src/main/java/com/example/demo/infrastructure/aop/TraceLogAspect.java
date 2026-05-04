@@ -1,5 +1,7 @@
 package com.example.demo.infrastructure.aop;
 
+import java.util.concurrent.TimeUnit;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -17,7 +19,7 @@ public class TraceLogAspect {
 
     @Around("@annotation(traceLog)")
     public Object logExecutionTime(ProceedingJoinPoint joinPoint, TraceLog traceLog) throws Throwable {
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         String methodName = joinPoint.getSignature().toShortString();
         String traceId = MDC.get("traceId");
 
@@ -26,11 +28,11 @@ public class TraceLogAspect {
         try {
             return joinPoint.proceed();
         } finally {
-            long duration = System.currentTimeMillis() - start;
+            long duration = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
             if (traceId != null) {
-                log.info("[{}] traceId={} took {}ms", operation, traceId, duration);
+                // log.info("[{}] traceId={} took {}us", operation, traceId, duration);
             } else {
-                log.info("[{}] took {}ms", operation, duration);
+                // log.info("[{}] took {}us", operation, duration);
             }
         }
     }

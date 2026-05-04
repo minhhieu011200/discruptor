@@ -1,5 +1,7 @@
 package com.example.demo.infrastructure.disruptor;
 
+import org.slf4j.MDC;
+
 import com.example.demo.domain.service.ProcessMarketReceiveService;
 import com.lmax.disruptor.EventHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -16,16 +18,16 @@ public class DecodeEventHandler implements EventHandler<DecodeEvent> {
     @Override
     public void onEvent(DecodeEvent event, long sequence, boolean endOfBatch) throws Exception {
         if (event.traceId != null) {
-            org.slf4j.MDC.put("traceId", event.traceId);
+            MDC.put("traceId", event.traceId);
         }
         if (event.startTime > 0) {
-            org.slf4j.MDC.put("startTime", String.valueOf(event.startTime));
+            MDC.put("startTime", String.valueOf(event.startTime));
         }
         try {
             this.processMarketReceiveService.process(event.data);
         } finally {
-            org.slf4j.MDC.remove("traceId");
-            org.slf4j.MDC.remove("startTime");
+            MDC.remove("traceId");
+            MDC.remove("startTime");
         }
     }
 

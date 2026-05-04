@@ -1,6 +1,7 @@
 package com.example.demo.infrastructure.disruptor;
 
 import org.springframework.stereotype.Service;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.example.demo.domain.service.ProcessMarketReceiveService;
@@ -45,11 +46,12 @@ public class DecodeDisruptor implements PublishService<Void, byte[]> {
         try {
             DecodeEvent event = ringBufferDecode.get(sequence);
             event.data = data;
-            event.traceId = org.slf4j.MDC.get("traceId");
-            
-            String st = org.slf4j.MDC.get("startTime");
-            if (st != null) event.startTime = Long.parseLong(st);
-            
+            event.traceId = MDC.get("traceId");
+
+            String st = MDC.get("startTime");
+            if (st != null)
+                event.startTime = Long.parseLong(st);
+
         } finally {
             ringBufferDecode.publish(sequence);
         }

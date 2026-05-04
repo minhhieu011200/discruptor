@@ -1,5 +1,7 @@
 package com.example.demo.infrastructure.disruptor;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.MDC;
 
 import com.example.demo.domain.service.ProcessMarketEventService;
@@ -22,16 +24,13 @@ public class MarketEventHandler implements EventHandler<MarketEvent> {
         if (event.getEntity().getStartTime() > 0) {
             MDC.put("startTime", String.valueOf(event.getEntity().getStartTime()));
         }
-        try {
-            processMarketEventService.process(event.getEntity());
-        } finally {
-            if (event.getEntity().getStartTime() > 0) {
-                long duration = System.currentTimeMillis() - event.getEntity().getStartTime();
-                log.info("Finished processing event imt={} traceId={} in {}ms", event.getEntity().getImtcode(),
-                        event.getEntity().getTraceId(), duration);
-            }
-            MDC.remove("traceId");
-            MDC.remove("startTime");
+        processMarketEventService.process(event.getEntity());
+        if (event.getEntity().getStartTime() > 0) {
+            long duration = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - event.getEntity().getStartTime());
+            log.info("Finished processing event traceId={} in {}us", event.getEntity().getTraceId(), duration);
         }
+        MDC.remove("traceId");
+        MDC.remove("startTime");
+
     }
 }

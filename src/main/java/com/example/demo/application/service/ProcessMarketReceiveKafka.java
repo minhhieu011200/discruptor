@@ -1,5 +1,6 @@
 package com.example.demo.application.service;
 
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -29,9 +30,9 @@ public class ProcessMarketReceiveKafka implements ProcessMarketReceiveService<by
         if (me.getImtcode() == null) {
             return;
         }
-        me.setTraceId(org.slf4j.MDC.get("traceId"));
+        me.setTraceId(MDC.get("traceId"));
 
-        String st = org.slf4j.MDC.get("startTime");
+        String st = MDC.get("startTime");
         if (st != null)
             me.setStartTime(Long.parseLong(st));
 

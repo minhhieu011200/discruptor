@@ -10,9 +10,12 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
+import lombok.extern.slf4j.Slf4j;
+
 import com.example.demo.application.properties.GatewayProperties;
 
 @Service
+@Slf4j
 public class GatewayApiImplement implements GatewayApiService {
 
     private final ApiWebClient apiWebClient;
@@ -39,6 +42,7 @@ public class GatewayApiImplement implements GatewayApiService {
 
     /** Generic method tránh trùng code */
     private <T> void callApi(String path, Object body, Class<T> responseType) {
+        log.info("Sending request to gateway: {} {}", path, body);
         apiWebClient.post(
                 properties.getBaseUrl() + path,
                 body,

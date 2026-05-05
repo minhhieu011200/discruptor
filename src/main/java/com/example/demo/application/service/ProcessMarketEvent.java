@@ -25,24 +25,14 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
 
     private final ThreadLocal<int[]> translogIndex = ThreadLocal.withInitial(() -> new int[] { 0 });
 
-    // private final PublishService<Void, SymbolEntity> redisPublishService;
-    // private final PublishService<Void, SymbolRequestDTO> marketDisruptor;
-
     private final SymbolRepository symbolRepository;
     private final TranslogShardedQueueRepository translogShardedQueueRepository;
     private final SymbolQueueRepository symbolQueueRepository;
 
     public ProcessMarketEvent(
-            // @Qualifier("RedisPubSub") PublishService<Void, SymbolEntity>
-            // redisPublishService,
             SymbolRepository symbolRepository,
             TranslogShardedQueueRepository translogShardedQueueRepository,
-            SymbolQueueRepository symbolQueueRepository
-    // @Qualifier("MarketDisruptor") PublishService<Void, SymbolRequestDTO>
-    // marketDisruptor
-    ) {
-
-        // this.redisPublishService = redisPublishService;
+            SymbolQueueRepository symbolQueueRepository) {
         this.symbolRepository = symbolRepository;
         this.translogShardedQueueRepository = translogShardedQueueRepository;
         this.symbolQueueRepository = symbolQueueRepository;
@@ -84,30 +74,6 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         usdVnd.setImtCode();
 
         fastTranslog(usdVnd);
-
-        // Publish cho các symbol USDXXX, nhưng KHÔNG chứa VND
-        // for (SymbolEntity symbol : symbolRepository.getAll().values()) { // dùng
-        // fastValues() -> trả về Collection không
-        // // wrap, nhanh hơn
-        // String code = symbol.getImtcode();
-
-        // // skip null + skip USDVND
-        // if (code == null || code == usdVnd.getImtcode())
-        // continue;
-
-        // // code.contains("USD") && !code.contains("VND") — nhưng tránh
-        // toLower/toUpper
-        // if (code.contains("USD") && !code.contains("VND")) {
-        // SymbolRequestDTO dto = new SymbolRequestDTO();
-        // dto.hydrate(
-        // symbol.getBid(), symbol.getAsk(),
-        // true, 0, 0, "", "", "",
-        // symbol.getBuyCurrency(), symbol.getSellCurrency(),
-        // symbol.getTenor(), symbol.getStatus());
-
-        // marketDisruptor.publish(code, dto);
-        // }
-        // }
     }
 
     private void processFxUsdFast(SymbolRequestDTO data, String imt) {

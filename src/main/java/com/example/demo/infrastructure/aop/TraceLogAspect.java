@@ -28,11 +28,13 @@ public class TraceLogAspect {
         try {
             return joinPoint.proceed();
         } finally {
-            long duration = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
-            if (traceId != null) {
-                // log.info("[{}] traceId={} took {}us", operation, traceId, duration);
-            } else {
-                // log.info("[{}] took {}us", operation, duration);
+            long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            if (log.isTraceEnabled()) {
+                if (traceId != null) {
+                    log.trace("[{}] traceId={} took {}ms", operation, traceId, duration);
+                } else {
+                    log.trace("[{}] took {}ms", operation, duration);
+                }
             }
         }
     }

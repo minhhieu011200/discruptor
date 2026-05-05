@@ -5,15 +5,17 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.example.demo.application.dto.SymbolRequestDTO;
 import com.example.demo.domain.service.ProcessMarketEventService;
-import com.example.demo.domain.service.PublishService;
+import com.example.demo.domain.service.PublishMarketDisruptor;
 import com.lmax.disruptor.BusySpinWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 
 @Service("MarketDisruptor")
-public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
+@Slf4j
+public class MarketDisruptor implements PublishMarketDisruptor {
     private final int numWorkers; // số lane / worker
     private final Disruptor<MarketEvent>[] disruptors;
     private final ProcessMarketEventService service;
@@ -58,10 +60,25 @@ public class MarketDisruptor implements PublishService<Void, SymbolRequestDTO> {
         return null;
     }
 
+    @Override
+    public Void publishTrace(String channel, SymbolRequestDTO e, String traceId, long startTime) {
+        int lane = (channel.hashCode() & 0x7fffffff) % numWorkers;
+        long seq = disruptors[lane].getRingBuffer().next();
+        try {
+            MarketEvent ev = disruptors[lane].getRingBuffer().get(seq);
+            ev.setEntity(e);
+            ev.getEntity().setTraceId(traceId);
+            ev.getEntity().setStartTime(startTime);
+        } finally {
+            disruptors[lane].getRingBuffer().publish(seq);
+        }
+        return null;
+    }
+
     @PreDestroy
     public void shutdown() {
         for (Disruptor<MarketEvent> d : disruptors) {
-            System.out.println("[MarketDisruptor] Shutting down lane...");
+            log.info("[MarketDisruptor] Shutting down lane...");
             d.shutdown(); // đợi event đang xử lý xong
         }
     }

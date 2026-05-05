@@ -1,72 +1,98 @@
 <configuration>
 
+    <!-- ===== GLOBAL CONFIG ===== -->
     <property name="LOG_PATH" value="logs"/>
+    <property name="MAX_HISTORY" value="7"/>
+    <property name="TOTAL_CAP" value="50GB"/>
+    <property name="MAX_FILE_SIZE" value="200MB"/>
 
-    <!-- ===================== -->
-    <!-- FILE APPENDER -->
-    <!-- ===================== -->
+    <!-- Status debug -->
+    <!-- <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" /> -->
+
+    <!-- ===== FILE APPENDER (FAST) ===== -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- file hiện tại -->
         <file>${LOG_PATH}/app.log</file>
 
-        <!-- ===== ROLLING POLICY ===== -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- file archive -->
-            <fileNamePattern>${LOG_PATH}/app-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
-            <!-- mỗi file max 100MB -->
-            <maxFileSize>100MB</maxFileSize>
-            <!-- giữ log 7 ngày -->
-            <maxHistory>7</maxHistory>
-            <!-- tổng dung lượng -->
-            <totalSizeCap>50GB</totalSizeCap>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- Rolling by date + index -->
+            <fileNamePattern>${LOG_PATH}/app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
 
+            <!-- Không dùng gzip để tránh CPU cao -->
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_CAP}</totalSizeCap>
         </rollingPolicy>
 
-        <!-- format log -->
+        <!-- Pattern nhẹ nhất, không caller, không class full -->
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
+
+        <append>true</append>
     </appender>
 
-    <!-- ===================== -->
-    <!-- DISRUPTOR ASYNC APPENDER -->
-    <!-- ===================== -->
+
+    <!-- ===== ASYNC WRAPPER (SUPER FAST) ===== -->
     <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- Queue lớn, tránh full khi burst log -->
+        <queueSize>65536</queueSize>
 
-        <!-- 🔥 QUAN TRỌNG: tăng throughput -->
-        <queueSize>8192</queueSize>
-
-        <!-- giảm loss log -->
+        <!-- Không bỏ log -->
         <discardingThreshold>0</discardingThreshold>
 
-        <!-- không block request thread -->
+        <!-- Không block thread business -->
         <neverBlock>true</neverBlock>
 
-        <!-- flush policy -->
+        <!-- Không lấy caller data (rất tốn CPU) -->
         <includeCallerData>false</includeCallerData>
 
         <appender-ref ref="FILE"/>
     </appender>
+    <appender name="LATENCY_EVENT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/latency-event.log</file>
 
-    <!-- ===================== -->
-    <!-- CONSOLE (sync) -->
-    <!-- ===================== -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/latency-event-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_CAP}</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <appender name="ASYNC_LATENCY_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>65536</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="LATENCY_EVENT_FILE"/>
+    </appender>
+
+    <!-- ===== CONSOLE APPENDER (OPTIONAL) ===== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- <logger name="reactor.netty.http.client" level="DEBUG"/>
-<logger name="reactor.netty.transport" level="DEBUG"/>
-<logger name="WebClientLogger" level="DEBUG"/>
-<logger name="reactor.netty" level="DEBUG"/> -->
-    <!-- ===================== -->
-    <!-- ROOT -->
-    <!-- ===================== -->
+
+    <!-- ===== ROOT LOGGER ===== -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <!-- Nếu chạy production high load → bỏ console -->
+        <!-- <appender-ref ref="CONSOLE"/> -->
         <appender-ref ref="ASYNC_FILE"/>
     </root>
+
+    <!-- Log ứng dụng -->
+    <logger name="com.example.demo" level="INFO"/>
+
+    <logger name="com.example.demo.infrastructure.disruptor"
+            level="INFO"
+            additivity="false">
+        <appender-ref ref="LATENCY_EVENT_FILE"/>
+    </logger>
 
 </configuration>

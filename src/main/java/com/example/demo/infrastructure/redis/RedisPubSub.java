@@ -5,10 +5,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.domain.service.PublishService;
+import com.example.demo.domain.service.PublishRedis;
 
 @Service("RedisPubSub")
-public class RedisPubSub<T> implements PublishService<Void, T> {
+public class RedisPubSub<T> implements PublishRedis<T> {
     private final StringRedisTemplate redisTemplate;
 
     public RedisPubSub(StringRedisTemplate redisTemplate) {
@@ -21,4 +21,9 @@ public class RedisPubSub<T> implements PublishService<Void, T> {
         return null;
     }
 
+    @Override
+    public Void publishTrace(String channel, T data, String traceId, long startTime) {
+        redisTemplate.convertAndSend(channel, data);
+        return null;
+    }
 }

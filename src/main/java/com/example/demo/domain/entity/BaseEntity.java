@@ -11,19 +11,11 @@ public class BaseEntity {
     private long createdTime;
     private long updatedTime;
 
-    private int version;
-    private int lastFlushedVersion;
+    private volatile int version;
 
-    public void setVersion() {
-        version++;
-        updatedTime = System.currentTimeMillis();
+    public void setVersion(int version) {
+        updatedTime = System.nanoTime();
+        this.version = version;
     }
 
-    public boolean isDirty() {
-        return version != lastFlushedVersion;
-    }
-
-    public void markClean() {
-        lastFlushedVersion = version;
-    }
 }

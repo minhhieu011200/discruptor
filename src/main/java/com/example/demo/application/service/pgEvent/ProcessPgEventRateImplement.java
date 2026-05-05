@@ -42,13 +42,13 @@ public class ProcessPgEventRateImplement implements ProcessPgEventService {
             symbol.setImtcode(imtcode);
             symbol.setBid(bid);
             symbol.setAsk(ask);
-            symbol.setVersion();
+            symbol.setVersion(symbol.getVersion() + 1);
             symbolRepository.set(imtcode, symbol);
             return;
         }
 
         symbol.setBid(bid);
         symbol.setAsk(ask);
-        symbol.setVersion();
+        symbol.setVersion(symbol.getVersion() + 1);
     }
 }

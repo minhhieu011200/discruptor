@@ -5,18 +5,21 @@
 <mapper namespace="com.example.demo.infrastructure.mybatis.SymbolMapper">
 
   <insert id="batchUpsert" parameterType="java.util.List">
-    INSERT INTO symbol (symbol, name, price, updated_time) VALUES
+    INSERT INTO symbol (imtcode, bid, ask, buy_currency, sell_currency, spread, tenor, status, valid_from, valid_till, rate_quote_id, updated_time) VALUES
     <foreach collection="symbols" item="s" separator=",">
-      (#{s.symbol}, #{s.name}, #{s.price}, #{s.updatedTime})
+      (#{s.imtcode}, #{s.bid}, #{s.ask}, #{s.buyCurrency}, #{s.sellCurrency}, #{s.spread}, #{s.tenor}, #{s.status}, #{s.validFrom}, #{s.validTill}, #{s.rateQuoteID}, #{s.updatedTime})
     </foreach>
-    ON DUPLICATE KEY UPDATE
-      name = VALUES(name),
-      price = VALUES(price),
-      updated_time = VALUES(updatedTime)
+    ON CONFLICT (imtcode) DO UPDATE SET
+      bid = EXCLUDED.bid,
+      ask = EXCLUDED.ask,
+      valid_from = EXCLUDED.valid_from,
+      valid_till = EXCLUDED.valid_till,
+      rate_quote_id = EXCLUDED.rate_quote_id,
+      updated_time = EXCLUDED.updated_time;
   </insert>
 
   <select id="getAllSymbols" resultType="com.example.demo.domain.entity.SymbolEntity">
-    select e.imtcode imtcode, e.buyrate bid, e.sellrate ask, f.firstccy buyCurrency, f.secondccy sellCurrency, f.spread spread from exchangerate e 
+    select e.imtcode imtcode, e.buyrate bid, e.sellrate ask, f.firstccy buyCurrency, f.secondccy sellCurrency, f.spread spread from exchangerate e
     left join fximt f on e.imtcode= f.fximtcode where e.realtime ='Y' or imtcode='USDVND'
   </select>
 

@@ -9,12 +9,12 @@ import org.springframework.stereotype.Repository;
 public class SymbolQueue implements SymbolQueueRepository {
 
     private static final int QUEUE_CAPACITY = 50000;
-    private final MpmcArrayQueue<SymbolEntity> sharedQueue = new MpmcArrayQueue<>(QUEUE_CAPACITY);
+    private final MpmcArrayQueue<SymbolEntity> sharedQueueSymbol = new MpmcArrayQueue<>(QUEUE_CAPACITY);
 
     @Override
     public void offer(SymbolEntity entity) {
         int retry = 0;
-        while (!sharedQueue.offer(entity)) {
+        while (!sharedQueueSymbol.offer(entity)) {
             if (retry++ < 10) {
                 Thread.onSpinWait();
             } else {
@@ -25,11 +25,11 @@ public class SymbolQueue implements SymbolQueueRepository {
 
     @Override
     public SymbolEntity poll() {
-        return sharedQueue.poll();
+        return sharedQueueSymbol.poll();
     }
 
     @Override
     public boolean isEmpty() {
-        return sharedQueue.isEmpty();
+        return sharedQueueSymbol.isEmpty();
     }
 }

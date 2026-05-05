@@ -54,13 +54,11 @@ public class ProcessPgEventCFImplement implements ProcessPgEventService {
             account.setImtcode(imtcode);
             account.setMarginBuy(marginBuy);
             account.setMarginSell(marginSell);
-
-            account.setVersion();
             accountRepository.set(accountKey, account);
             return;
         }
         account.setMarginBuy(marginBuy);
         account.setMarginSell(marginSell);
-        account.setVersion();
+
     }
 }

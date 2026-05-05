@@ -28,8 +28,10 @@ public class SymbolWorkerStarter {
     private final int workerCount;
 
     private ExecutorService workerExecutor;
-    private SymbolWorker worker;
     private ExecutorService flushExecutor;
+    private ExecutorService redisExecutor;
+
+    private SymbolWorker worker;
 
     public SymbolWorkerStarter(
             SymbolQueueRepository queue,
@@ -48,6 +50,8 @@ public class SymbolWorkerStarter {
 
     @PostConstruct
     public void start() {
+
+        // ===== MAIN WORKER =====
         workerExecutor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r);
             t.setName("symbol-worker");
@@ -55,6 +59,7 @@ public class SymbolWorkerStarter {
             return t;
         });
 
+        // ===== DB EXECUTOR =====
         flushExecutor = Executors.newFixedThreadPool(workerCount, r -> {
             Thread t = new Thread(r);
             t.setName("symbol-flush-" + t.getId());
@@ -62,6 +67,15 @@ public class SymbolWorkerStarter {
             return t;
         });
 
+        // ===== REDIS EXECUTOR =====
+        redisExecutor = Executors.newFixedThreadPool(4, r -> {
+            Thread t = new Thread(r);
+            t.setName("symbol-redis-" + t.getId());
+            t.setDaemon(true);
+            return t;
+        });
+
+        // ===== WORKER INSTANCE =====
         worker = new SymbolWorker(
                 queue,
                 mapper,
@@ -69,41 +83,40 @@ public class SymbolWorkerStarter {
                 objectMapper,
                 1000,
                 flushMillis,
-                flushExecutor
+                flushExecutor,
+                redisExecutor // <<< thêm vào đây
         );
 
         workerExecutor.submit(worker);
-        log.info("[SymbolWorkerStarter] Started worker (Executor)");
+        log.info("[SymbolWorkerStarter] Started worker with redisExecutor + flushExecutor");
     }
 
     @PreDestroy
     public void stop() {
         log.info("[SymbolWorkerStarter] Stopping...");
+
         if (worker != null) {
             worker.shutdown();
         }
-        if (workerExecutor != null) {
-            workerExecutor.shutdown();
-            try {
-                if (!workerExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                    workerExecutor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                workerExecutor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-        if (flushExecutor != null) {
-            flushExecutor.shutdown();
-            try {
-                if (!flushExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-                    flushExecutor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                flushExecutor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
+
+        shutdownExecutor(workerExecutor, 5, "workerExecutor");
+        shutdownExecutor(flushExecutor, 10, "flushExecutor");
+        shutdownExecutor(redisExecutor, 5, "redisExecutor");
+
         log.info("[SymbolWorkerStarter] Stopped cleanly");
+    }
+
+    private void shutdownExecutor(ExecutorService executor, int timeoutSeconds, String name) {
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }

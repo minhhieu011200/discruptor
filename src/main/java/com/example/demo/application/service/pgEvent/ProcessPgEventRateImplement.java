@@ -26,29 +26,30 @@ public class ProcessPgEventRateImplement implements ProcessPgEventService {
     @Override
     @Measured(value = "pg.event.rate", description = "Time to process rate event")
     public void process(JsonNode message) {
-        JsonNode refidNode = JsonUtils.parseRefId(objectMapper, message.path("refid").asText());
-        if (refidNode == null)
+
+        JsonNode refid = JsonUtils.parseRefId(objectMapper, message.path("refid").asText());
+        if (refid == null)
             return;
 
-        String imtcode = JsonUtils.extractText(refidNode, "IMTCODE");
-        Double bidObj = JsonUtils.extractDouble(refidNode, "BUYRATE");
-        Double askObj = JsonUtils.extractDouble(refidNode, "SELLRATE");
-        double bid = bidObj != null ? bidObj : 0.0;
-        double ask = askObj != null ? askObj : 0.0;
+        String imtcode = JsonUtils.extractText(refid, "IMTCODE");
+        if (imtcode == null)
+            return;
+
+        double bid = JsonUtils.extractDouble(refid, "BUYRATE");
+        double ask = JsonUtils.extractDouble(refid, "SELLRATE");
 
         SymbolEntity symbol = symbolRepository.get(imtcode);
+
         if (symbol == null) {
             symbol = new SymbolEntity();
             symbol.setImtcode(imtcode);
-            symbol.setBid(bid);
-            symbol.setAsk(ask);
-            symbol.setVersion(symbol.getVersion() + 1);
-            symbolRepository.set(imtcode, symbol);
-            return;
         }
 
         symbol.setBid(bid);
         symbol.setAsk(ask);
         symbol.setVersion(symbol.getVersion() + 1);
+
+        // ALWAYS write back (ChronicleMap không tự update object)
+        symbolRepository.set(imtcode, symbol);
     }
 }

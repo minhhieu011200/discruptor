@@ -103,9 +103,8 @@ public class SymbolWorker implements Runnable {
         if (old == null) {
             return true;
         }
-        log.info("old version: " + old.getVersion() + " new version: " + now.getVersion());
-        int newVersion = now.getVersion();
-        int oldVersion = old.getVersion();
+        long newVersion = now.getVersion();
+        long oldVersion = old.getVersion();
 
         if (newVersion > oldVersion) {
             return true;

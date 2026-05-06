@@ -30,35 +30,34 @@ public class ProcessPgEventCFImplement implements ProcessPgEventService {
     @Override
     @Measured(value = "pg.event.cf", description = "Time to process CF event")
     public void process(JsonNode message) {
-        JsonNode refidNode = JsonUtils.parseRefId(objectMapper, message.path("refid").asText());
-        if (refidNode == null)
+
+        JsonNode refid = JsonUtils.parseRefId(objectMapper, message.path("refid").asText());
+        if (refid == null)
             return;
 
-        String cfid = JsonUtils.extractText(refidNode, "CIFID");
-        String imtcode = JsonUtils.extractText(refidNode, "IMTCODE");
-        Double marginBuyObj = JsonUtils.extractDouble(refidNode, "MARGINBUY");
-        Double marginSellObj = JsonUtils.extractDouble(refidNode, "MARGINSELL");
-        double marginBuy = marginBuyObj != null ? marginBuyObj : 0.0;
-        double marginSell = marginSellObj != null ? marginSellObj : 0.0;
+        String cfid = JsonUtils.extractText(refid, "CIFID");
+        String imtcode = JsonUtils.extractText(refid, "IMTCODE");
         if (cfid == null || imtcode == null) {
-            log.error("Missing CIFID or IMTCODE: {}", refidNode);
+            log.error("Missing CIFID or IMTCODE: {}", refid);
             return;
         }
+
+        double marginBuy = JsonUtils.extractDouble(refid, "MARGINBUY");
+        double marginSell = JsonUtils.extractDouble(refid, "MARGINSELL");
+
         String accountKey = cfid + imtcode;
+        AccountEntity acc = accountRepository.get(accountKey);
 
-        AccountEntity account = accountRepository.get(accountKey);
-        if (account == null) {
-            account = new AccountEntity();
-
-            account.setCifid(cfid);
-            account.setImtcode(imtcode);
-            account.setMarginBuy(marginBuy);
-            account.setMarginSell(marginSell);
-            accountRepository.set(accountKey, account);
-            return;
+        if (acc == null) {
+            acc = new AccountEntity();
+            acc.setCifid(cfid);
+            acc.setImtcode(imtcode);
         }
-        account.setMarginBuy(marginBuy);
-        account.setMarginSell(marginSell);
 
+        acc.setMarginBuy(marginBuy);
+        acc.setMarginSell(marginSell);
+
+        // Always put back (ChronicleMap & concurrency-safe)
+        accountRepository.set(accountKey, acc);
     }
 }

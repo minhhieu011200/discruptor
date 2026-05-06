@@ -4,7 +4,7 @@ import lombok.Data;
 import net.openhft.chronicle.bytes.BytesMarshallable;
 
 @Data
-public class AccountEntity extends BaseEntity implements BytesMarshallable {
+public class AccountEntity implements BytesMarshallable {
     private String cifid;
     private String imtcode;
     private double marginBuy;

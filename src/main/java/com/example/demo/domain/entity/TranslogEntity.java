@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class TranslogEntity extends BaseEntity {
+public class TranslogEntity {
     private String imtcode;
     private String buyCurrency;
     private String sellCurrency;
@@ -15,6 +15,7 @@ public class TranslogEntity extends BaseEntity {
     private long validFrom;
     private long validTill;
     private String rateQuoteID;
+    private long version;
 
     public void hydrate(
             String imtcode,
@@ -26,7 +27,8 @@ public class TranslogEntity extends BaseEntity {
             double spread,
             long validFrom,
             long validTill,
-            String rateQuoteID) {
+            String rateQuoteID,
+            long version) {
         this.imtcode = imtcode;
         this.buyCurrency = buyCurrency;
         this.sellCurrency = sellCurrency;
@@ -37,5 +39,6 @@ public class TranslogEntity extends BaseEntity {
         this.validFrom = validFrom;
         this.validTill = validTill;
         this.rateQuoteID = rateQuoteID;
+        this.version = version;
     }
 }

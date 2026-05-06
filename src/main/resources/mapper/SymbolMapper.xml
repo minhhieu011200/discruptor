@@ -5,9 +5,9 @@
 <mapper namespace="com.example.demo.infrastructure.mybatis.SymbolMapper">
 
   <insert id="batchUpsert" parameterType="java.util.List">
-    INSERT INTO symbol (imtcode, bid, ask, buy_currency, sell_currency, spread, tenor, status, valid_from, valid_till, rate_quote_id, updated_time) VALUES
+    INSERT INTO symbol (imtcode, bid, ask, buy_currency, sell_currency, spread, tenor, status, valid_from, valid_till, rate_quote_id,version) VALUES
     <foreach collection="symbols" item="s" separator=",">
-      (#{s.imtcode}, #{s.bid}, #{s.ask}, #{s.buyCurrency}, #{s.sellCurrency}, #{s.spread}, #{s.tenor}, #{s.status}, #{s.validFrom}, #{s.validTill}, #{s.rateQuoteID}, #{s.updatedTime})
+      (#{s.imtcode}, #{s.bid}, #{s.ask}, #{s.buyCurrency}, #{s.sellCurrency}, #{s.spread}, #{s.tenor}, #{s.status}, #{s.validFrom}, #{s.validTill}, #{s.rateQuoteID},#{s.version})
     </foreach>
     ON CONFLICT (imtcode) DO UPDATE SET
       bid = EXCLUDED.bid,
@@ -15,7 +15,7 @@
       valid_from = EXCLUDED.valid_from,
       valid_till = EXCLUDED.valid_till,
       rate_quote_id = EXCLUDED.rate_quote_id,
-      updated_time = EXCLUDED.updated_time;
+      version = EXCLUDED.version;
   </insert>
 
   <select id="getAllSymbols" resultType="com.example.demo.domain.entity.SymbolEntity">

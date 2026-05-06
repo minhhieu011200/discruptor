@@ -71,10 +71,9 @@ public class SymbolWorker implements Runnable {
                 boolean changed = hasChanged(old, item);
 
                 // Always override -> dedupe
-                batchMap.put(item.getImtcode(), item);
-
                 if (changed) {
                     publishRedisAsync(item);
+                    batchMap.put(item.getImtcode(), item);
                 }
 
                 if (batchMap.size() >= batchSize) {

@@ -5,9 +5,9 @@
 <mapper namespace="com.example.demo.infrastructure.mybatis.TranslogMapper">
 
   <insert id="insertBatch" parameterType="java.util.List">
-    INSERT INTO translog (imtcode, buy_currency, sell_currency, bid, ask, valid_from, valid_till, rate_quote_id, created_time, updated_time) VALUES
+    INSERT INTO translog (imtcode, buy_currency, sell_currency, bid, ask, valid_from, valid_till, rate_quote_id, version) VALUES
     <foreach collection="list" item="item" separator=",">
-      (#{item.imtcode}, #{item.buyCurrency}, #{item.sellCurrency}, #{item.bid}, #{item.ask}, #{item.validFrom}, #{item.validTill}, #{item.rateQuoteID}, #{item.createdTime}, #{item.updatedTime})
+      (#{item.imtcode}, #{item.buyCurrency}, #{item.sellCurrency}, #{item.bid}, #{item.ask}, #{item.validFrom}, #{item.validTill}, #{item.rateQuoteID}, #{item.version})
     </foreach>
   </insert>
   

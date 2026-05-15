@@ -1,11 +1,7 @@
 package com.example.demo.infrastructure.cache.caffeine;
 
 import java.util.Map;
-
-import org.springframework.stereotype.Repository;
-
 import com.example.demo.domain.entity.AccountEntity;
-import com.example.demo.domain.entity.SymbolEntity;
 import com.example.demo.domain.repository.AccountRepository;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;

@@ -28,8 +28,7 @@ public class AccountChronicleRepository implements AccountRepository {
                 .averageKeySize(50)
                 .averageValueSize(512)
                 .entries(1_000_000)
-                // .valueMarshaller(new AccountEntityMarshaller())
-                .createPersistedTo(file);
+                .recoverPersistedTo(file, false);
     }
 
     @Override

@@ -23,11 +23,11 @@ public class SymbolChronicleRepository implements SymbolRepository {
         this.symbolCache = ChronicleMap
                 .of(String.class, SymbolEntity.class)
                 .name("symbol-cache")
-                .averageKeySize(16)
-                .averageValueSize(512)
+                .averageKeySize(32)
+                .averageValueSize(256)
                 .entries(1_000_000)
-                // .valueMarshaller(new SymbolEntityMarshaller())
-                .createPersistedTo(file);
+                // Dùng hàm tự động phá khóa và phục hồi nếu file bị lỗi kẹt lock
+                .recoverPersistedTo(file, false);
 
     }
 

@@ -24,7 +24,7 @@ public class ProcessMarketReceiveKafka implements ProcessMarketReceiveService {
     }
 
     @Override
-    @Measured(value = "kafka.receive.process", description = "Time to process message received from Kafka and publish to disruptor")
+    @Measured(value = "kafka.receive.process", description = "Time to process message received from Kafka and publish to disruptor", measureBandwidth = true)
     @TraceLog("ProcessMarketReceiveKafka")
     public void process(byte[] data, String traceId, Long startTime) {
         SymbolRequestDTO me = processMarketParse.process(data, traceId, startTime);

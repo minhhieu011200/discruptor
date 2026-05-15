@@ -57,7 +57,7 @@ public class DataPreloadService {
             }
 
             List<SubscribeExchangeDTO> listSubscribe = symbols.stream()
-                    .filter(s -> !StringUtils.isBlank(s.getImtcode()))
+                    .filter(s -> !StringUtils.isBlank(s.getImtcode()) || !"USDVND".equals(s.getImtcode()))
                     .peek(s -> {
                         symbolRepository.set(s.getImtcode(), s);
                     })

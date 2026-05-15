@@ -23,4 +23,22 @@ public class SymbolEntity implements BytesMarshallable {
     public void setImtCode() {
         this.imtcode = buyCurrency + sellCurrency;
     }
+
+    public static SymbolEntity cloneLight(SymbolEntity src) {
+        SymbolEntity s = new SymbolEntity();
+        s.bid = src.bid;
+        s.ask = src.ask;
+        s.spread = src.spread;
+        s.validFrom = src.validFrom;
+        s.validTill = src.validTill;
+        s.version = src.version;
+        s.buyCurrency = src.buyCurrency;
+        s.sellCurrency = src.sellCurrency;
+        s.tenor = src.tenor;
+        s.status = src.status;
+        s.imtcode = src.imtcode;
+        s.rateQuoteID = src.rateQuoteID;
+
+        return s;
+    }
 }

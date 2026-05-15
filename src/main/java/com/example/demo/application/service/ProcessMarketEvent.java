@@ -11,12 +11,12 @@ import com.example.demo.domain.repository.TranslogShardedQueueRepository;
 import com.example.demo.domain.service.ProcessMarketEventService;
 
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
 public class ProcessMarketEvent implements ProcessMarketEventService {
+
     private final SymbolRepository symbolRepository;
     private final TranslogShardedQueueRepository translogShardedQueueRepository;
     private final SymbolQueueRepository symbolQueueRepository;
@@ -28,7 +28,6 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         this.symbolRepository = symbolRepository;
         this.translogShardedQueueRepository = translogShardedQueueRepository;
         this.symbolQueueRepository = symbolQueueRepository;
-        // this.marketDisruptor = marketDisruptor;
     }
 
     @Override
@@ -37,53 +36,21 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
     public void process(SymbolRequestDTO data) {
 
         String imt = data.getImtcode();
-        if (imt == null || imt.length() == 0)
+        if (imt == null || imt.isEmpty() || "USDVND".equals(imt))
             return;
 
-        // Hot-path: USDVND (luồng chạy nhiều)
-        if (imt.equals("USDVND")) {
-            processUsdVndFast(data);
-            return;
-        }
-
-        // FX-USD (EURUSD, GBPUSD...)
         processFxUsdFast(data, imt);
-    }
-
-    // ============================================================
-    // = HANDLE USDVND =
-    // ============================================================
-
-    private void processUsdVndFast(SymbolRequestDTO data) {
-        SymbolEntity usdVnd = symbolRepository.get("USDVND");
-        if (usdVnd == null)
-            return;
-
-        usdVnd.setBuyCurrency(data.getBuyCurrency());
-        usdVnd.setSellCurrency(data.getSellCurrency());
-        usdVnd.setBid(data.getBid());
-        usdVnd.setAsk(data.getAsk());
-        usdVnd.setTenor(data.getTenor());
-        usdVnd.setStatus(data.getStatus());
-        usdVnd.setImtCode();
-        usdVnd.setValidFrom(data.getValidFrom());
-        usdVnd.setValidTill(data.getValidTill());
-
-        usdVnd.setVersion(usdVnd.getVersion() + 1);
-
-        // MUST PUT
-        symbolRepository.set("USDVND", usdVnd);
-
-        fastTranslog(usdVnd);
     }
 
     private void processFxUsdFast(SymbolRequestDTO data, String imt) {
 
-        SymbolEntity fxUsd = symbolRepository.get(imt);
-        if (fxUsd == null)
+        // === GET ORIGINAL ===
+        SymbolEntity oldFxUsd = symbolRepository.get(imt);
+        if (oldFxUsd == null)
             return;
 
-        // Update data
+        // === CLONE → MUTATE ===
+        SymbolEntity fxUsd = SymbolEntity.cloneLight(oldFxUsd);
         fxUsd.setBuyCurrency(data.getBuyCurrency());
         fxUsd.setSellCurrency(data.getSellCurrency());
         fxUsd.setBid(data.getBid());
@@ -94,43 +61,44 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         fxUsd.setValidFrom(data.getValidFrom());
         fxUsd.setValidTill(data.getValidTill());
         fxUsd.setRateQuoteID(data.getRateQuoteID());
-
-        // Increment version
         fxUsd.setVersion(fxUsd.getVersion() + 1);
 
-        // MUST: update ChronicleMap!
+        // === PUT BACK ===
         symbolRepository.set(imt, fxUsd);
-
         fastTranslog(fxUsd);
 
-        // =================================================
-        // If not USD related → return early
-        // =================================================
-        boolean buyIsUsd = "USD".equals(data.getSellCurrency());
-        boolean sellIsUsd = "USD".equals(data.getBuyCurrency());
+        // -----------------------------
+        // Không phải USD → bỏ qua cross
+        // -----------------------------
+        final String sellCcy = data.getSellCurrency();
+        final String buyCcy = data.getBuyCurrency();
+
+        boolean buyIsUsd = "USD".equals(sellCcy);
+        boolean sellIsUsd = "USD".equals(buyCcy);
         if (!buyIsUsd && !sellIsUsd)
             return;
 
-        SymbolEntity usdVnd = symbolRepository.get("USDVND");
-        if (usdVnd == null)
+        // === Lấy USDVND ===
+        SymbolEntity usdVndSrc = symbolRepository.get("USDVND");
+        if (usdVndSrc == null)
             return;
 
-        // avoid string concat
-        String crossImt = buyIsUsd ? data.getBuyCurrency() + "VND" : "VND" + data.getSellCurrency();
-        SymbolEntity fxVnd = symbolRepository.get(crossImt);
+        SymbolEntity usdVnd = SymbolEntity.cloneLight(usdVndSrc);
+        // === Tính tên cross ===
+        String crossImt = buyIsUsd ? buyCcy + "VND" : "VND" + sellCcy;
 
-        if (fxVnd == null) {
-            fxVnd = new SymbolEntity();
-        }
+        SymbolEntity oldFxVnd = symbolRepository.get(crossImt);
+        SymbolEntity fxVnd = (oldFxVnd == null) ? new SymbolEntity() : SymbolEntity.cloneLight(oldFxVnd);
 
+        // === CROSS RATE ===
         if (buyIsUsd) {
             fxVnd.setBid(data.getBid() * usdVnd.getBid());
             fxVnd.setAsk(data.getAsk() * usdVnd.getAsk());
-            fxVnd.setBuyCurrency(data.getBuyCurrency());
+            fxVnd.setBuyCurrency(buyCcy);
         } else {
             fxVnd.setBid(usdVnd.getAsk() / data.getBid());
             fxVnd.setAsk(usdVnd.getBid() / data.getAsk());
-            fxVnd.setBuyCurrency(data.getSellCurrency());
+            fxVnd.setBuyCurrency(sellCcy);
         }
 
         fxVnd.setSellCurrency("VND");
@@ -141,7 +109,8 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         fxVnd.setRateQuoteID(data.getRateQuoteID());
         fxVnd.setVersion(fxVnd.getVersion() + 1);
 
-        // MUST PUT BACK
+        // === SỬA Lỗi Ở Đây ===
+        // Bạn viết: fxUsd.set(crossImt, fxVnd); → SAI
         symbolRepository.set(crossImt, fxVnd);
 
         fastTranslog(fxVnd);
@@ -150,7 +119,6 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
     private void fastTranslog(SymbolEntity s) {
         TranslogEntity t = new TranslogEntity();
 
-        // Ghi vào object slot riêng biệt
         t.hydrate(
                 s.getImtcode(),
                 s.getBuyCurrency(), s.getSellCurrency(),
@@ -164,5 +132,4 @@ public class ProcessMarketEvent implements ProcessMarketEventService {
         translogShardedQueueRepository.offer(t);
         symbolQueueRepository.offer(s);
     }
-
 }

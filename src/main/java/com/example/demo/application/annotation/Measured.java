@@ -8,4 +8,6 @@ public @interface Measured {
     String value() default ""; // Tên metric (mặc định là tên method)
 
     String description() default "";
+
+    boolean measureBandwidth() default false; // Cờ bật tính năng đo băng thông
 }

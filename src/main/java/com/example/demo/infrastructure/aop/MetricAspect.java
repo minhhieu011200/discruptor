@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import com.example.demo.application.annotation.Measured;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
@@ -21,6 +22,7 @@ public class MetricAspect {
         private final MeterRegistry meterRegistry;
         private final ConcurrentHashMap<String, Timer> timers = new ConcurrentHashMap<>();
         private final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<String, DistributionSummary> summaries = new ConcurrentHashMap<>();
 
         public MetricAspect(MeterRegistry meterRegistry) {
                 this.meterRegistry = meterRegistry;
@@ -58,6 +60,33 @@ public class MetricAspect {
                                 .tag("queue_name", metricName)
                                 .description(measured.description())
                                 .register(meterRegistry));
+
+                // Lấy hoặc tạo DistributionSummary để đo băng thông (kích thước message)
+                if (measured.measureBandwidth()) {
+                        DistributionSummary summary = summaries.computeIfAbsent(metricName,
+                                        k -> DistributionSummary.builder("queue_received_bytes")
+                                                        .tag("queue_name", metricName)
+                                                        .description("Size of received messages in bytes")
+                                                        .baseUnit("bytes")
+                                                        .register(meterRegistry));
+
+                        long messageSize = 0;
+                        Object[] args = pjp.getArgs();
+                        if (args != null) {
+                                for (Object arg : args) {
+                                        if (arg instanceof byte[]) {
+                                                messageSize += ((byte[]) arg).length;
+                                        } else if (arg instanceof String) {
+                                                messageSize += ((String) arg)
+                                                                .getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                                        }
+                                }
+                        }
+
+                        if (messageSize > 0) {
+                                summary.record(messageSize);
+                        }
+                }
 
                 long start = System.nanoTime();
                 try {

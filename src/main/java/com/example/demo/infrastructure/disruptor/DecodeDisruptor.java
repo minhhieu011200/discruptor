@@ -5,8 +5,8 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.example.demo.domain.service.ProcessMarketReceiveService;
 import com.example.demo.domain.service.PublishDecodeDisruptor;
-import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
@@ -32,13 +32,14 @@ public class DecodeDisruptor implements PublishDecodeDisruptor {
                 new DecodeEvent.Factory(),
                 this.ringBufferSize,
                 Thread.ofPlatform().name("decode-worker").factory(),
-                ProducerType.SINGLE,
-                new BlockingWaitStrategy());
+                ProducerType.MULTI,
+                new YieldingWaitStrategy());
 
         disruptorDecode.handleEventsWith(new DecodeEventHandler(service));
         disruptorDecode.start();
-        // Lấy ringBuffer sau khi start
         ringBufferDecode = disruptorDecode.getRingBuffer();
+
+        log.info("[DecodeDisruptor] Started with ringBufferSize={}", ringBufferSize);
     }
 
     @Override

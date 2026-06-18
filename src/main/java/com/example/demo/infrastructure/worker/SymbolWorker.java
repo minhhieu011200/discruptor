@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
 public class SymbolWorker implements Runnable {
@@ -53,7 +54,9 @@ public class SymbolWorker implements Runnable {
     @Override
     public void run() {
 
-        Map<String, SymbolEntity> batchMap = new HashMap<>(batchSize);
+        // PERF: LinkedHashMap giữ thứ tự insertion; khởi tạo với capacity hint tránh
+        // resize
+        Map<String, SymbolEntity> batchMap = new java.util.LinkedHashMap<>((int) (batchSize / 0.75f) + 1);
         long firstAddTime = 0;
         long timeoutNanos = maxWaitMillis * 1_000_000;
 
@@ -70,10 +73,11 @@ public class SymbolWorker implements Runnable {
                 SymbolEntity old = batchMap.get(item.getImtcode());
                 boolean changed = hasChanged(old, item);
 
-                // Always override -> dedupe
+                // Always override -> dedupe by IMT code
                 if (changed) {
-                    publishRedisAsync(item);
                     batchMap.put(item.getImtcode(), item);
+                    // PERF: publish Redis ngay khi có change – tránh delay do flush interval
+                    publishRedisAsync(item);
                 }
 
                 if (batchMap.size() >= batchSize) {
@@ -89,7 +93,8 @@ public class SymbolWorker implements Runnable {
                 continue;
             }
 
-            Thread.yield();
+            // PERF: parkNanos(100) thay cho Thread.yield() – giải phóng CPU khi idle
+            LockSupport.parkNanos(100L);
         }
 
         // Final flush before shutdown

@@ -62,7 +62,8 @@ public class TransLogWorker implements Runnable {
 
                 if (batch.size() >= batchSize) {
                     flush(batch);
-                    batch.clear();
+                    // PERF: tạo list mới thay vì clear – flush() đã giữ reference cũ
+                    batch = new ArrayList<>(batchSize);
                 }
                 continue;
             }
@@ -72,11 +73,13 @@ public class TransLogWorker implements Runnable {
                     now - firstAddTime >= timeoutNanos) {
 
                 flush(batch);
-                batch.clear();
+                batch = new ArrayList<>(batchSize);
                 continue;
             }
 
-            Thread.yield();
+            // PERF: parkNanos(100) thay cho Thread.yield()
+            // yield() vẫn consume CPU trên nhiều OS; parkNanos giải phóng core hơn
+            LockSupport.parkNanos(100L);
         }
 
         // flush cuối
@@ -86,22 +89,21 @@ public class TransLogWorker implements Runnable {
     }
 
     private void flush(List<TranslogEntity> batch) {
-
-        // copy tránh bị mutate khi worker tái sử dụng batch
-        List<TranslogEntity> copy = new ArrayList<>(batch);
-
+        // PERF: giữ nguyên reference cũ – caller tạo list mới sau khi gọi flush()
+        // Nên không cần copy để tránh batch bị mutate
+        final List<TranslogEntity> toFlush = batch;
         try {
             flushExecutor.submit(() -> {
                 try {
-                    mapper.insertBatch(copy);
+                    mapper.insertBatch(toFlush);
                 } catch (Exception e) {
-                    log.error("[flush error] " + e.getMessage());
+                    log.error("[flush error] {}", e.getMessage());
                     // TODO: retry hoặc đẩy DLQ
                 }
             });
         } catch (RejectedExecutionException ex) {
             // queue quá tải → nên chuyển sang DLQ
-            log.error("[flush rejected] executor overload");
+            log.error("[flush rejected] executor overload, dropping {} records", toFlush.size());
         }
     }
 }

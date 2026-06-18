@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MarketEventHandler implements EventHandler<MarketEvent> {
-    private ProcessMarketEventService processMarketEventService;
+    private final ProcessMarketEventService processMarketEventService;
 
     public MarketEventHandler(int lane, ProcessMarketEventService processMarketEventService) {
         this.processMarketEventService = processMarketEventService;
@@ -17,9 +17,9 @@ public class MarketEventHandler implements EventHandler<MarketEvent> {
     @Override
     public void onEvent(MarketEvent event, long sequence, boolean endOfBatch) throws Exception {
         processMarketEventService.process(event.getEntity());
-        String traceId = event.getEntity().getTraceId();
-        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - event.getEntity().getStartTime());
-        log.info("Finished processing event traceId={} in {}ms", traceId, duration);
-
+        if (log.isTraceEnabled()) {
+            long duration = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - event.getEntity().getStartTime());
+            log.trace("[lane] traceId={} latency={}µs", event.getEntity().getTraceId(), duration);
+        }
     }
 }

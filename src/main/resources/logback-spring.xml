@@ -25,7 +25,7 @@
 
         <!-- Pattern nhẹ nhất, không caller, không class full -->
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
 
         <append>true</append>
@@ -59,7 +59,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
     
@@ -74,7 +74,7 @@
     <!-- ===== CONSOLE APPENDER (OPTIONAL) ===== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 

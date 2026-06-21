@@ -101,13 +101,6 @@ public class ApiWebClientConfig {
                 return traceId;
         }
 
-        // truncate body tránh log quá lớn
-        private String truncate(String body) {
-                if (body == null)
-                        return "";
-                return body.length() > 500 ? body.substring(0, 500) + "..." : body;
-        }
-
         @PostConstruct
         public void init() {
                 reactor.core.publisher.Hooks.enableAutomaticContextPropagation();

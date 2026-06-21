@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-@Repository
 public class SymbolChronicleRepository implements SymbolRepository {
 
     private ChronicleMap<String, SymbolEntity> symbolCache;

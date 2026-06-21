@@ -1,5 +1,6 @@
 package com.example.demo.infrastructure.redis;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.example.demo.domain.service.PublishRedis;
 
 @Service("RedisPubSub")
+@ConditionalOnProperty(name = "app.connection.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class RedisPubSub<T> implements PublishRedis<T> {
     private final StringRedisTemplate redisTemplate;
 

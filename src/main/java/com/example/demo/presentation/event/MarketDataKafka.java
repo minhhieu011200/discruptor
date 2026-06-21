@@ -3,6 +3,7 @@ package com.example.demo.presentation.event;
 import java.util.List;
 
 import org.slf4j.MDC;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Controller;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Controller
 @Slf4j
+@ConditionalOnProperty(name = "app.connection.kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class MarketDataKafka {
     private final PublishDecodeDisruptor service;
 

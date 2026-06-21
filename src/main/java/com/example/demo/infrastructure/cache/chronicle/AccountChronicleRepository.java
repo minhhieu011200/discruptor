@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-@Repository
 public class AccountChronicleRepository implements AccountRepository {
 
     private ChronicleMap<String, AccountEntity> accountCache;

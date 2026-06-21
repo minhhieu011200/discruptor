@@ -17,11 +17,11 @@ import java.util.Map;
  *
  * Cách dùng — trong filter/interceptor, đưa bất kỳ field nào vào Context:
  *
- *   .contextWrite(ctx -> ctx.put("mdc", Map.of(
- *       "traceId",   tid,
- *       "userId",    userId,
- *       "accountId", accountId
- *   )))
+ * .contextWrite(ctx -> ctx.put("mdc", Map.of(
+ * "traceId", tid,
+ * "userId", userId,
+ * "accountId", accountId
+ * )))
  *
  * Sau đó logback pattern %X{traceId} / %X{userId} / %X{accountId}
  * tự động có giá trị ở mọi log statement downstream.
@@ -30,7 +30,7 @@ import java.util.Map;
 public class MDCPropagationHook {
 
     public static final String MDC_CONTEXT_KEY = "mdc";
-    private static final String HOOK_KEY        = "MDC-Propagation";
+    private static final String HOOK_KEY = "MDC-Propagation";
 
     @PostConstruct
     public void install() {

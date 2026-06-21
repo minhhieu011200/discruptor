@@ -1,6 +1,7 @@
 package com.example.demo.application.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.application.dto.SubscribeExchangeDTO;
@@ -23,6 +24,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "app.connection.postgres.enabled", havingValue = "true", matchIfMissing = false)
 public class DataPreloadService {
 
     private final SymbolMapper symbolMapper;

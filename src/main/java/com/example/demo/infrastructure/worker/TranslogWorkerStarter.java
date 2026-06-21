@@ -9,12 +9,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.infrastructure.mybatis.TranslogMapper;
 
 @Component
 @Slf4j
+@ConditionalOnProperty(name = "app.connection.postgres.enabled", havingValue = "true", matchIfMissing = false)
 public class TranslogWorkerStarter {
 
     private final TranslogQueue queue;

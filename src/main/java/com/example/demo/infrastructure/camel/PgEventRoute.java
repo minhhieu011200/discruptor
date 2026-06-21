@@ -3,6 +3,7 @@ package com.example.demo.infrastructure.camel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.CamelContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
+@ConditionalOnProperty(name = "app.connection.postgres.enabled", havingValue = "true", matchIfMissing = false)
 public class PgEventRoute extends RouteBuilder {
 
     @Value("${pg.endpoint}")

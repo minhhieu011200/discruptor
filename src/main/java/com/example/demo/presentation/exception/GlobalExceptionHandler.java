@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebInputException;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -47,9 +48,10 @@ public class GlobalExceptionHandler {
         return status(HttpStatus.BAD_REQUEST, BaseResponseDTO.error(ErrorCode.BAD_REQUEST.getCode(), detail));
     }
 
-    @ExceptionHandler({ServerWebInputException.class, HttpMessageNotReadableException.class})
+    @ExceptionHandler({ ServerWebInputException.class, HttpMessageNotReadableException.class })
     public Mono<ResponseEntity<BaseResponseDTO<Void>>> handleBadInput(Exception ex) {
-        log.warn("[EX] Bad input: {}", ex.getMessage());
+        String detail = getRootCauseMessage(ex);
+        log.warn("[EX] Bad input: {}", detail);
         return status(HttpStatus.BAD_REQUEST,
                 BaseResponseDTO.error(ErrorCode.BAD_REQUEST.getCode(), ErrorCode.BAD_REQUEST.getMessage()));
     }
@@ -58,12 +60,31 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public Mono<ResponseEntity<BaseResponseDTO<Void>>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("[EX] IllegalArgument: {}", ex.getMessage());
+        String detail = getRootCauseMessage(ex);
+        log.warn("[EX] IllegalArgument: {}", detail);
         return status(HttpStatus.BAD_REQUEST,
                 BaseResponseDTO.error(ErrorCode.BAD_REQUEST.getCode(), ex.getMessage()));
     }
 
-    // ── 4. Catch-all → HTTP 500 ───────────────────────────────────────────────
+    // ── 4. Response status / Not Found / Method Not Allowed → HTTP 4xx ────────
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public Mono<ResponseEntity<BaseResponseDTO<Void>>> handleResponseStatus(ResponseStatusException ex) {
+        String detail = getRootCauseMessage(ex);
+        log.warn("[EX] ResponseStatusException: status={} message={}", ex.getStatusCode(), detail);
+        if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+            return status(HttpStatus.NOT_FOUND,
+                    BaseResponseDTO.error(ErrorCode.NOT_FOUND.getCode(), ErrorCode.NOT_FOUND.getMessage()));
+        }
+        int code = ex.getStatusCode().value();
+        HttpStatus status = HttpStatus.resolve(code);
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        return status(status, BaseResponseDTO.error(code, ex.getReason() != null ? ex.getReason() : ex.getMessage()));
+    }
+
+    // ── 5. Catch-all → HTTP 500 ───────────────────────────────────────────────
 
     @ExceptionHandler(Exception.class)
     public Mono<ResponseEntity<BaseResponseDTO<Void>>> handleUnknown(Exception ex) {
@@ -81,5 +102,15 @@ public class GlobalExceptionHandler {
 
     private static <T> Mono<ResponseEntity<BaseResponseDTO<T>>> status(HttpStatus httpStatus, BaseResponseDTO<T> body) {
         return Mono.just(ResponseEntity.status(httpStatus).body(body));
+    }
+
+    private static String getRootCauseMessage(Throwable t) {
+        if (t == null)
+            return "Unknown error";
+        Throwable cause = t;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause.getMessage() != null ? cause.getMessage() : cause.toString();
     }
 }

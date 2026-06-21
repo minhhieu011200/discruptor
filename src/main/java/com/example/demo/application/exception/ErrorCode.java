@@ -10,7 +10,7 @@ public enum ErrorCode {
     BAD_REQUEST(400, "Bad request"),
     NOT_FOUND(404, "Resource not found"),
     UNAUTHORIZED(401, "Unauthorized"),
-    FORBIDDEN(403, "Forbidden"),
+    FORBIDDEN(403, "Forbidden");
 
     private final int code;
     private final String message;

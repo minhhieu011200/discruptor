@@ -12,7 +12,7 @@ import jakarta.annotation.PostConstruct;
 
 import java.util.Map;
 
-// @Repository
+@Repository
 public class SymbolCaffeineRepository implements SymbolRepository {
 
     private final Cache<String, SymbolEntity> symbolCache = Caffeine.newBuilder()

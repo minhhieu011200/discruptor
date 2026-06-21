@@ -10,6 +10,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ExecutorService;
@@ -18,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
+// Cần cả PostgreSQL (SymbolMapper) và Redis (RedisPubSub) cùng bật
+@ConditionalOnProperty(name = {"app.connection.postgres.enabled", "app.connection.redis.enabled"}, havingValue = "true", matchIfMissing = false)
 public class SymbolWorkerStarter {
 
     private final SymbolQueueRepository queue;

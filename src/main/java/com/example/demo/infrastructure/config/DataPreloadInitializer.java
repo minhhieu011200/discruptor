@@ -3,6 +3,7 @@ package com.example.demo.infrastructure.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.application.service.DataPreloadService;
@@ -13,6 +14,7 @@ import com.example.demo.application.service.DataPreloadService;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "app.connection.postgres.enabled", havingValue = "true", matchIfMissing = false)
 public class DataPreloadInitializer implements ApplicationRunner {
 
     private final DataPreloadService dataPreloadService;

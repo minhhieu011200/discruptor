@@ -1,6 +1,7 @@
 package com.example.demo.presentation.filter;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -33,8 +34,17 @@ public class BodyCachingFilter implements WebFilter {
     /** Key lưu cached body (byte[]) vào ServerWebExchange attributes. */
     public static final String CACHED_BODY_ATTR = "CACHED_BODY_BYTES";
 
+    @Value("${security.s2s.enabled:false}")
+    private boolean s2sEnabled;
+
+    @Value("${app.logging.request-response.enabled:true}")
+    private boolean loggingEnabled;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        if (!s2sEnabled && !loggingEnabled) {
+            return chain.filter(exchange);
+        }
         return DataBufferUtils.join(exchange.getRequest().getBody())
                 .defaultIfEmpty(exchange.getResponse().bufferFactory().wrap(new byte[0]))
                 .flatMap(dataBuffer -> {

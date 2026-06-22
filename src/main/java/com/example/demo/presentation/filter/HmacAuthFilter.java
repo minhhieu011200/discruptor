@@ -58,8 +58,26 @@ import java.util.Map;
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class HmacAuthFilter implements WebFilter {
 
+    public static final String MSG_MISSING_HEADERS = "Missing required S2S authentication headers";
+    public static final String MSG_TIMESTAMP_INVALID = "Request timestamp is outside allowed window";
+    public static final String MSG_UNKNOWN_KEY = "Unknown API key id";
+    public static final String MSG_INVALID_SIGNATURE = "Invalid HMAC signature";
+    public static final String MSG_GENERIC_ERROR = "Authentication processing error";
+
+    private static final byte[] JSON_GENERIC_ERROR = toJsonBytes(MSG_GENERIC_ERROR);
+
+    private static final Map<String, byte[]> ERROR_RESPONSES = Map.of(
+            MSG_MISSING_HEADERS, toJsonBytes(MSG_MISSING_HEADERS),
+            MSG_TIMESTAMP_INVALID, toJsonBytes(MSG_TIMESTAMP_INVALID),
+            MSG_UNKNOWN_KEY, toJsonBytes(MSG_UNKNOWN_KEY),
+            MSG_INVALID_SIGNATURE, toJsonBytes(MSG_INVALID_SIGNATURE));
+
+    private static byte[] toJsonBytes(String message) {
+        return ("{\"error\":\"Unauthorized\",\"message\":\"" + message + "\"}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
     private final S2sSecurityProperties props;
-    private final ObjectMapper objectMapper;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -114,13 +132,13 @@ public class HmacAuthFilter implements WebFilter {
         if (isBlank(keyId) || isBlank(timestamp) || isBlank(signature)) {
             log.warn("[S2S] Missing required headers on {} {} | keyId={} ts={} sig={}",
                     method, path, keyId, timestamp, signature);
-            return rejectUnauthorized(exchange, "Missing required S2S authentication headers");
+            return rejectUnauthorized(exchange, MSG_MISSING_HEADERS);
         }
 
         // Validate timestamp window
         if (!isTimestampValid(timestamp)) {
             log.warn("[S2S] Timestamp expired or invalid: {} on {} {}", timestamp, method, path);
-            return rejectUnauthorized(exchange, "Request timestamp is outside allowed window");
+            return rejectUnauthorized(exchange, MSG_TIMESTAMP_INVALID);
         }
 
         // Lookup secret key
@@ -128,7 +146,7 @@ public class HmacAuthFilter implements WebFilter {
         String secretKey = keys.get(keyId);
         if (secretKey == null) {
             log.warn("[S2S] Unknown key-id: {} on {} {}", keyId, method, path);
-            return rejectUnauthorized(exchange, "Unknown API key id");
+            return rejectUnauthorized(exchange, MSG_UNKNOWN_KEY);
         }
 
         // Tính lại HMAC và so sánh (constant-time)
@@ -138,11 +156,11 @@ public class HmacAuthFilter implements WebFilter {
             String expected = HmacSignatureUtil.computeSignature(secretKey, method, path, qs, timestamp, bodyBytes);
             if (!HmacSignatureUtil.verifySignature(expected, signature)) {
                 log.warn("[S2S] Invalid signature for key-id={} on {} {}", keyId, method, path);
-                return rejectUnauthorized(exchange, "Invalid HMAC signature");
+                return rejectUnauthorized(exchange, MSG_INVALID_SIGNATURE);
             }
         } catch (Exception e) {
             log.error("[S2S] Error computing HMAC for {} {}: {}", method, path, e.getMessage(), e);
-            return rejectUnauthorized(exchange, "Authentication processing error");
+            return rejectUnauthorized(exchange, MSG_GENERIC_ERROR);
         }
 
         // Xác thực thành công – inject SecurityContext, không cần wrap request lại
@@ -179,14 +197,11 @@ public class HmacAuthFilter implements WebFilter {
     private Mono<Void> rejectUnauthorized(ServerWebExchange exchange, String message) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body;
-        try {
-            body = objectMapper.writeValueAsString(
-                    Map.of("error", "Unauthorized", "message", message));
-        } catch (Exception e) {
-            body = "{\"error\":\"Unauthorized\"}";
-        }
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponse().getHeaders().add("X-Error-Code", "401");
+        exchange.getResponse().getHeaders().add("X-Error-Message", message);
+
+        byte[] bytes = ERROR_RESPONSES.getOrDefault(message, JSON_GENERIC_ERROR);
+
         DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bytes);
         return exchange.getResponse().writeWith(Mono.just(buffer));
     }

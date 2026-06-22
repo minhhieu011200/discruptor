@@ -1,4 +1,4 @@
-package com.example.demo.infrastructure.config;
+package com.example.demo.presentation.startup;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;

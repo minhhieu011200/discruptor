@@ -6,6 +6,7 @@
     <property name="TOTAL_CAP" value="50GB"/>
     <property name="MAX_FILE_SIZE" value="200MB"/>
 
+
     <!-- Status debug -->
     <!-- <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" /> -->
 
@@ -25,7 +26,7 @@
 
         <!-- Pattern nhẹ nhất, không caller, không class full -->
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] [%X{traceId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
 
         <append>true</append>
@@ -59,7 +60,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] [%X{traceId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
     
@@ -74,7 +75,7 @@
     <!-- ===== CONSOLE APPENDER (OPTIONAL) ===== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%t] [%X{traceId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 

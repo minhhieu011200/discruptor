@@ -23,7 +23,7 @@ public class SymbolController {
 
     @PostMapping("/batch")
     public Mono<BaseResponseDTO<List<SymbolResponseDTO>>> query(@RequestBody SymbolQueryRequestDTO req) {
-        return symbolQueryService.query(req.getIds(), req.getAccountId())
+        return symbolQueryService.query(req.ids(), req.accountId())
                 .map(BaseResponseDTO::success);
     }
 }

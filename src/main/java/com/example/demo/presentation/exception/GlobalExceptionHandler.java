@@ -97,11 +97,17 @@ public class GlobalExceptionHandler {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static <T> Mono<ResponseEntity<BaseResponseDTO<T>>> ok(BaseResponseDTO<T> body) {
-        return Mono.just(ResponseEntity.ok(body));
+        return Mono.just(ResponseEntity.ok()
+                .header("X-Error-Code", String.valueOf(body.getEc()))
+                .header("X-Error-Message", body.getEm())
+                .body(body));
     }
 
     private static <T> Mono<ResponseEntity<BaseResponseDTO<T>>> status(HttpStatus httpStatus, BaseResponseDTO<T> body) {
-        return Mono.just(ResponseEntity.status(httpStatus).body(body));
+        return Mono.just(ResponseEntity.status(httpStatus)
+                .header("X-Error-Code", String.valueOf(body.getEc()))
+                .header("X-Error-Message", body.getEm())
+                .body(body));
     }
 
     private static String getRootCauseMessage(Throwable t) {
